@@ -1,7 +1,7 @@
 "use server"
 
 import { z } from "zod";
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import {createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut} from 'firebase/auth';
 import { doc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { auth, db } from '@/app/lib/firebase';
 import {revalidatePath} from "next/cache";
@@ -104,4 +104,55 @@ export async function signup(prevState: State, formData: FormData) {
     // 6. Revalidate and redirect
     revalidatePath('/dashboard');
     redirect('/dashboard');
+}
+
+
+
+//Login
+
+export type LoginState = {
+    message?: string | null;
+}
+
+export async function login(prevState: LoginState, formData: FormData): Promise<LoginState> {
+    const email = formData.get('email');
+    const password = formData.get('password');
+
+    if(!email || !password) {
+        return {
+            message: 'Email and password are required.',
+        }
+    }
+
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: unknown) {
+        // Firebase provides specific error codes for login failures.
+        if (typeof error === 'object' && error !== null && 'code' in error) {
+            const firebaseError = error as { code: string };
+            switch (firebaseError.code) {
+                case 'auth/invalid-credential':
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                    return {
+                        message: 'Invalid email or password.',
+                    }
+                default: return { message: 'An unexpected error occurred. Please try again.'}
+            }
+        }
+
+        console.error("Login Error:", error);
+        return { message: 'An unexpected error occurred. Please try again.'}
+    }
+
+    // On successful login, redirect to dashboard
+    revalidatePath('/dashboard');
+    redirect('/dashboard');
+}
+
+export async function logout() {
+    await signOut(auth);
+    // On successful logout, redirect to login
+    revalidatePath('/login');
+    redirect('/login');
 }
