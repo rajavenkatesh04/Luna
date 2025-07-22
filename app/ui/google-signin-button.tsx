@@ -84,9 +84,16 @@ export default function GoogleSignInButton() {
             // Success, redirect to dashboard
             router.push('/dashboard');
 
-        } catch (error) {
-            console.error("Google Sign-In Error", error);
-            setError("Failed to sign in with Google. Please try again.");
+        } catch (error: any) { // Use 'any' to access error.code
+            // --- THIS IS THE CRITICAL FIX ---
+            // Catch the specific error when an account already exists with the same email
+            if (error.code === 'auth/account-exists-with-different-credential') {
+                setError('An account with this email already exists. Please sign in with your original method (e.g., password).');
+            } else {
+                // Handle other generic errors
+                console.error("Google Sign-In Error", error);
+                setError("Failed to sign in with Google. Please try again.");
+            }
             setIsLoading(false);
         }
     };
