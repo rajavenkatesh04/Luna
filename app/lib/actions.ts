@@ -14,7 +14,7 @@ const SignupFormSchema = z.object({
 })
 
 export type State = {
-    errors?: z.inferFlattenedErrors<typeof SignupFormSchema>['fieldErrors'];
+    errors?: z.inferFlattenedErrors<typeof SignupFormSchema>;
     message?: string | null;
 };
 
@@ -89,12 +89,16 @@ export async function signup(prevState: State, formData: FormData) {
         // commit the batch write
         await batch.commit();
 
-    } catch (error: any) {
-        if (error.code === 'auth/email-already-in-use') {
-            return { message: 'Email already in use' };
+    } catch (error: unknown) {
+        if (typeof error === 'object' && error !== null && 'code' in error) {
+            const firebaseError = error as { code: string };
+            if (firebaseError.code === 'auth/email-already-in-use') {
+                return { message: 'This email address is already in use.' };
+            }
         }
+        // If it's not a known Firebase error, log it and return a generic message.
         console.error("Signup Error:", error);
-        return { message: 'Database Error: Failed to Sign Up' };
+        return { message: 'An unexpected error occurred. Please try again.' };
     }
 
     // 6. Revalidate and redirect
