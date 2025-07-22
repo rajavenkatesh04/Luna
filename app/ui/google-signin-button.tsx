@@ -1,9 +1,10 @@
 'use client';
 
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { auth } from "@/app/lib/firebase";
-import { handleGoogleSignIn } from "@/app/lib/actions";
+import { auth, db } from "@/app/lib/firebase";
 import { useState } from "react";
+import { doc, getDoc, setDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 // Simple Google Icon SVG
 const GoogleIcon = () => (
@@ -16,39 +17,91 @@ const GoogleIcon = () => (
     </svg>
 );
 
+const PUBLIC_EMAIL_DOMAINS = new Set([
+    'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com'
+]);
 
 export default function GoogleSignInButton() {
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
 
     const handleSignIn = async () => {
         setIsLoading(true);
+        setError(null);
         const provider = new GoogleAuthProvider();
         try {
             const result = await signInWithPopup(auth, provider);
-            // After successful popup, we have the user object.
-            // Now we call our server action to handle database logic.
-            await handleGoogleSignIn({
-                uid: result.user.uid,
-                email: result.user.email,
-                displayName: result.user.displayName,
+            const user = result.user;
+
+            if (!user.email) {
+                throw new Error("No email returned from Google.");
+            }
+
+            // Check if user exists in our Firestore
+            const userRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userRef);
+
+            if (userDoc.exists()) {
+                // User exists, just log them in and redirect
+                router.push('/dashboard');
+                return;
+            }
+
+            // User is new, run claim domain check and create account
+            const emailDomain = user.email.split('@')[1];
+            if (!PUBLIC_EMAIL_DOMAINS.has(emailDomain)) {
+                const orgsRef = collection(db, 'organizations');
+                const q = query(orgsRef, where("claimedDomain", "==", emailDomain));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    setError(`Domain ${emailDomain} is already claimed. Please ask for an invitation.`);
+                    setIsLoading(false);
+                    await auth.signOut(); // Sign out the user as they can't proceed
+                    return;
+                }
+            }
+
+            // Create new organization and user document
+            const organizationName = user.displayName ? `${user.displayName}'s Workspace` : "My Workspace";
+            const batch = writeBatch(db);
+            const orgRef = doc(collection(db, 'organizations'));
+            batch.set(orgRef, {
+                name: organizationName,
+                ownerUid: user.uid,
+                subscriptionTier: 'free',
+                ...(!PUBLIC_EMAIL_DOMAINS.has(emailDomain) && { claimedDomain: emailDomain })
             });
+            batch.set(userRef, {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName || "User",
+                organizationId: orgRef.id,
+                role: 'owner',
+            });
+            await batch.commit();
+
+            // Success, redirect to dashboard
+            router.push('/dashboard');
+
         } catch (error) {
             console.error("Google Sign-In Error", error);
-            // Handle specific errors here if needed, e.g., popup closed by user.
+            setError("Failed to sign in with Google. Please try again.");
             setIsLoading(false);
         }
-        // The server action will handle the redirect, so we don't need to do anything here.
-        // If the action fails, the user will be redirected back to the login page with an error.
     };
 
     return (
-        <button
-            onClick={handleSignIn}
-            disabled={isLoading}
-            className="mt-4 flex w-full items-center justify-center gap-3 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-            <GoogleIcon />
-            <span>{isLoading ? 'Signing In...' : 'Sign in with Google'}</span>
-        </button>
+        <div>
+            <button
+                onClick={handleSignIn}
+                disabled={isLoading}
+                className="mt-4 flex w-full items-center justify-center gap-3 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+                <GoogleIcon />
+                <span>{isLoading ? 'Signing In...' : 'Sign in with Google'}</span>
+            </button>
+            {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
+        </div>
     );
 }

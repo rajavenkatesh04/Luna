@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
-import { doc, collection, query, where, getDocs, writeBatch, getDoc } from 'firebase/firestore';
+import { doc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { auth, db } from '@/app/lib/firebase';
 import {revalidatePath} from "next/cache";
 import {redirect} from "next/navigation";
@@ -164,75 +164,3 @@ export async function logout() {
     redirect('/login');
 }
 
-
-
-// --- Google Sign-In Action ---
-
-
-export async function handleGoogleSignIn(user: { uid: string, email: string | null, displayName: string }) {
-    if(!user.email) {
-        throw new Error('Google sign-in failed: No email address provided.');
-    }
-
-    // 1. Check if user document already exists in our Firebase 'users' collection.
-    const userRef = doc(db, 'users', user.uid);
-    const userDoc = await getDoc(userRef);
-
-    if(userDoc.exists()) {
-        // 2. If user already exists, they're just loggin in. Redirect to dashboard
-        revalidatePath('/dashboard');
-        redirect('/dashboard');
-    } else {
-        // 3. If user doesn't exist, this is their first time signing in.
-        // We need to run the "claim domain" check and create their organization.
-
-        const emailDomain = user.email.split('@')[1];
-        const organizationName = user.displayName ? `${user.displayName}'s Workspace` : "My Workspace";
-
-        if(!PUBLIC_EMAIL_DOMAINS.has(emailDomain)) {
-            // check if the domain already claimed
-            const orgsRef = collection(db, 'organizations');
-            const q = query(orgsRef, where("claimedDomain", "==", emailDomain));
-            const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
-                // If the domain already claimed, we can't create a new organisation.
-                // We'll redirect to login with an error message.
-                // In future, an "request to join" feature will be added.
-                redirect(`/login?error=domain_claimed&domain=${emailDomain}`);
-            }
-        }
-
-        // 4. If the domain is available, create the new user and organization.
-        try{
-            const batch = writeBatch(db);
-            const orgRef = doc(collection(db, 'organizations'));
-            batch.set(orgRef, {
-                name: organizationName,
-                ownerUid: user.uid,
-                subscriptionTier: 'free',
-                ...(!PUBLIC_EMAIL_DOMAINS.has(emailDomain) && { claimedDomain: emailDomain })
-            })
-
-            // we use the userRef we defined earlier
-            batch.set(userRef, {
-                uid: user.uid,
-                email: user.email,
-                displayName: user.displayName || "User",
-                organizationId: orgRef.id,
-                role: 'owner',
-            });
-
-            await batch.commit();
-
-        } catch (error) {
-            console.error("Google Sign-In DB Error:", error);
-
-            // Redirect with  generic error if the database write fails.
-            redirect('/login?error=google_signup_failed');
-        }
-
-        // 5. Sucess! Redirect to dashboard
-        revalidatePath('/dashboard');
-        redirect('/dashboard');
-    }
-}
