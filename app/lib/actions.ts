@@ -1,13 +1,14 @@
 "use server"
 
 import { z } from "zod";
-import {createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut} from 'firebase/auth';
+import {createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile} from 'firebase/auth';
 import { doc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { auth, db } from '@/app/lib/firebase';
 import {revalidatePath} from "next/cache";
 import {redirect} from "next/navigation";
 
 const SignupFormSchema = z.object({
+    displayName: z.string().min(2, { message: "Name must be at least 2 characters." }),
     organizationName: z.string().min(2, { message: "Organization name must be at least 2 characters"}),
     email: z.string().email(),
     password: z.string().min(6, { message: "Password must be at least 6 characters"}),
@@ -26,6 +27,7 @@ const PUBLIC_EMAIL_DOMAINS = new Set([
 export async function signup(prevState: State, formData: FormData) {
     // 1. Validate the form data
     const validatedFields = SignupFormSchema.safeParse({
+        displayName: formData.get('displayName'),
         organizationName: formData.get('organizationName'),
         email: formData.get('email'),
         password: formData.get('password'),
@@ -38,7 +40,7 @@ export async function signup(prevState: State, formData: FormData) {
         }
     }
 
-    const { organizationName, email, password } = validatedFields.data;
+    const { displayName, organizationName, email, password } = validatedFields.data;
 
     // 2. Extract the domain and check if it's a public domain
     const emailDomain = email.split('@')[1];
@@ -64,6 +66,10 @@ export async function signup(prevState: State, formData: FormData) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
+        await updateProfile(user, {
+            displayName: displayName
+        });
+
         // Use a firebase batch write to make the operation atomic (all or nothing)
         const batch = writeBatch(db);
 
@@ -82,6 +88,7 @@ export async function signup(prevState: State, formData: FormData) {
         batch.set(userRef, {
             uid: user.uid,
             email: user.email,
+            displayName: displayName,
             organizationId: orgRef.id,
             role: 'owner',
         });

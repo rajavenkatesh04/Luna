@@ -1,6 +1,7 @@
 export interface User {
     uid: string;
     email: string;
+    displayName: string;
     organisationId: string;
     role: 'user' | 'admin' | 'owner' | 'master' ;
 }

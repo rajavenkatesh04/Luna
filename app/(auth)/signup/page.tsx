@@ -21,8 +21,30 @@ export default function SignupPage() {
                         <h1 className={`mb-3 text-xl font-semibold`}>Create your Workspace</h1>
 
                         <div className={`w-full`}>
-                            {/*    Organisation Name Input*/}
+                            {/* Name Input*/}
                             <div>
+                                <label
+                                    className="mb-1 mt-5 block text-xs font-medium "
+                                    htmlFor="displayName"
+                                >
+                                    Your Name
+                                </label>
+                                <input
+                                    className="peer block w-full rounded-md border border-gray-200 py-[9px] px-3 text-sm outline-2 placeholder:text-gray-500"
+                                    id="displayName"
+                                    type="text"
+                                    name="displayName"
+                                    placeholder="e.g., Raja "
+                                    required
+                                />
+                                {state.errors?.fieldErrors.displayName && (
+                                    <p className="mt-1 text-xs text-red-500">
+                                        {state.errors.fieldErrors.displayName.join(', ')}
+                                    </p>
+                                )}
+                            </div>
+                            {/*    Organisation Name Input*/}
+                            <div className={`mt-4`}>
                                 <label className={`mb-1 mt-5 block text-xs font-medium`} htmlFor={`OrganizationName`}>Organization / Workspace Name</label>
                                 <input
                                     className={`peer block w-full rounded-md border border-gray-200 py-[9px] px-3 text-sm outline-2 placeholder:text-gray-500`}
