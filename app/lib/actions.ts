@@ -115,8 +115,8 @@ export type LoginState = {
 }
 
 export async function login(prevState: LoginState, formData: FormData): Promise<LoginState> {
-    const email = formData.get('email');
-    const password = formData.get('password');
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
 
     if(!email || !password) {
         return {
