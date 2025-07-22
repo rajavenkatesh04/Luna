@@ -5,6 +5,7 @@ import {login, LoginState} from "@/app/lib/actions";
 import Link from "next/link";
 import {useActionState} from "react";
 import {useFormStatus} from "react-dom";
+import GoogleSignInButton from "@/app/ui/google-signin-button";
 
 export default function LoginPage() {
     const initialState: LoginState = { message: null};
@@ -24,7 +25,7 @@ export default function LoginPage() {
                             {/* Email Input */}
                             <div>
                                 <label
-                                    className="mb-1 mt-5 block text-xs font-medium text-gray-900"
+                                    className="mb-1 mt-5 block text-xs font-medium "
                                     htmlFor="email"
                                 >
                                     Email
@@ -42,7 +43,7 @@ export default function LoginPage() {
                             {/*    Password Input*/}
                             <div className="mt-4">
                                 <label
-                                    className="mb-1 block text-xs font-medium text-gray-900"
+                                    className="mb-1 block text-xs font-medium "
                                     htmlFor="password"
                                 >
                                     Password
@@ -60,6 +61,18 @@ export default function LoginPage() {
 
                             {/*    Submit Button    */}
                             <LoginButton />
+
+                            {/* Google Sign In Button */}
+                            <div className={`relative my-6`}>
+                                <div className={`absolute inset-0 flex items-center`}>
+                                    <div className={`w-full border-t border-gray-300`}/>
+                                </div>
+                                <div className={`relative flex justify-center text-xs uppercase`}>
+                                    <span className={`px-2 bg-white text-gray-500`}>or continue with</span>
+                                </div>
+                            </div>
+
+                            <GoogleSignInButton />
 
                             {/* Display general error messages from the server action */}
                             {state?.message && (

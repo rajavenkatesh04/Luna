@@ -4,6 +4,7 @@ import { State, signup } from "@/app/lib/actions";
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import Link from "next/link";
+import GoogleSignInButton from "@/app/ui/google-signin-button";
 
 export default function SignupPage() {
     const initialState: State = { message: null};
@@ -94,6 +95,21 @@ export default function SignupPage() {
 
                             {/*    Submit Button    */}
                             <SignupButton />
+
+
+                            {/* Google Sign In Button */}
+                            <div className={`relative my-6`}>
+                                <div className={`absolute inset-0 flex items-center`}>
+                                    <div className={`w-full border-t border-gray-300`}/>
+                                </div>
+                                <div className={`relative flex justify-center text-xs uppercase`}>
+                                    <span className={`px-2 bg-white text-gray-500`}>or continue with</span>
+                                </div>
+                            </div>
+
+                            <GoogleSignInButton />
+
+
                             {/*    Display general error messages from the server action    */}
                             {state.message && (
                                 <div className={`mt-4 flex items-center space-x-2`}>
@@ -120,7 +136,7 @@ function SignupButton() {
     const {pending} = useFormStatus();
 
     return(
-        <button className={`mt-6 flex h-10 w-full items-center justify-center rounded-lg border-gray-700 px-4 text-sm font-medium transition-colors hover:bg-blue-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 active:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50`}
+        <button className={`mt-6 flex h-10 w-full items-center justify-center rounded-lg border-gray-700 bg-blue-500 px-4 text-sm font-medium transition-colors hover:bg-blue-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 active:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50`}
                 aria-disabled={pending}
                 disabled={pending}
         >
