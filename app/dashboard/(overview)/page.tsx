@@ -50,13 +50,13 @@ export default function DashboardPage() {
                     <form action={logout}>
                         <button
                             type="submit"
-                            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                            className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
                         >
                             Log Out
                         </button>
                     </form>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className=" p-6 rounded-lg shadow-md">
                     <h2 className="text-xl font-semibold mb-4">Your Dashboard</h2>
                     <p>This is your protected dashboard. Only logged-in users can see this.</p>
                     <p className="mt-2">Your email: {user.email}</p>
