@@ -1,12 +1,14 @@
 "use client"
 
-import { signup } from "@/app/lib/actions";
+import { State, signup } from "@/app/lib/actions";
 import { useFormState, useFormStatus } from 'react-dom';
 import Link from "next/link";
 
 export default function SignupPage() {
-    const initialState = { message: null, errors: {} };
-    const [state, dispatch] = useFormState( signup, initialState);
+    const initialState: State = { message: null, errors: {} };
+
+    const [state, dispatch] = useFormState( signup,
+        initialState);
 
     return(
         <main className={`flex items-center justify-center min-h-screen`}>
@@ -29,8 +31,8 @@ export default function SignupPage() {
                                     placeholder={`e.g., SRM Chennai or My Workshop`}
                                     required
                                 />
-                                {state.errors?.organizationName && (
-                                    <p className={`mt-1 text-xs text-red-500`}>{state.errors.organizationName}</p>
+                                {state.errors?.fieldErrors.organizationName && (
+                                    <p className={`mt-1 text-xs text-red-500`}>{state.errors.fieldErrors.organizationName.join(', ')}</p>
                                 )}
                             </div>
 
@@ -45,8 +47,8 @@ export default function SignupPage() {
                                     placeholder={`Enter your email address`}
                                     required
                                 />
-                                {state.errors?.email && (
-                                    <p className={`mt-1 text-xs text-red-500`}>{state.errors.email}</p>
+                                {state.errors?.fieldErrors.email && (
+                                    <p className={`mt-1 text-xs text-red-500`}>{state.errors.fieldErrors.email.join(', ')}</p>
                                 )}
                             </div>
 
@@ -62,8 +64,8 @@ export default function SignupPage() {
                                     required
                                     minLength={6}
                                 />
-                                {state.errors?.password && (
-                                    <p className={`mt-1 text-xs text-red-500`}>{state.errors.password}</p>
+                                {state.errors?.fieldErrors.password && (
+                                    <p className={`mt-1 text-xs text-red-500`}>{state.errors.fieldErrors.password.join(', ')}</p>
                                 )}
                             </div>
 
