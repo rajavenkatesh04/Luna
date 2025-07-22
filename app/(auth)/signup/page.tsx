@@ -1,12 +1,12 @@
 "use client"
 
-import { signup} from "@/app/lib/actions";
+import { signup } from "@/app/lib/actions";
 import { useFormState, useFormStatus } from 'react-dom';
 import Link from "next/link";
 
 export default function SignupPage() {
     const initialState = { message: null, errors: {} };
-    const [state, dispatch] = useFormState(signup, initialState);
+    const [state, dispatch] = useFormState( signup, initialState);
 
     return(
         <main className={`flex items-center justify-center min-h-screen`}>

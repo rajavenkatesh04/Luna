@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { auth, db } from '@/app/lib/firebase';
 import {revalidatePath} from "next/cache";
 import {redirect} from "next/navigation";
@@ -14,13 +14,9 @@ const SignupFormSchema = z.object({
 })
 
 export type State = {
-    errors?: {
-        organisationName?: string;
-        email?: string[];
-        password?: string[];
-    };
+    errors?: z.inferFlattenedErrors<typeof SignupFormSchema>['fieldErrors'];
     message?: string | null;
-}
+};
 
 // Ignore list of public domains from "claim domain"
 const PUBLIC_EMAIL_DOMAINS = new Set([
@@ -86,7 +82,7 @@ export async function signup(prevState: State, formData: FormData) {
         batch.set(userRef, {
             uid: user.uid,
             email: user.email,
-            organisationId: orgRef.id,
+            organizationId: orgRef.id,
             role: 'owner',
         });
 
