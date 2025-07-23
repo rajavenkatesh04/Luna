@@ -1,7 +1,6 @@
-import {GeistFont, InterFont, PlayWriteNewZealandFont} from "@/app/ui/fonts";
+import {GeistFont, PlayWriteNewZealandFont} from "@/app/ui/fonts";
 import Link from "next/link";
 import ToggleSwitch from "@/app/ui/ToggleSwitch";
-import {Geist, Geist_Mono} from "next/dist/compiled/@next/font/dist/google";
 
 export default function Home() {
     return(
