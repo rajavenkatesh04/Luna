@@ -1,11 +1,14 @@
 "use server"
 
-import { z } from "zod";
+import {z} from "zod";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
-import { doc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import {doc, collection, query, where, getDocs, writeBatch, getDoc, setDoc} from 'firebase/firestore';
 import { auth, db } from '@/app/lib/firebase';
 import {revalidatePath} from "next/cache";
 import {redirect} from "next/navigation";
+import {nanoid} from "nanoid";
+import { Timestamp } from 'firebase/firestore';
+import { arrayUnion } from 'firebase/firestore';
 
 const SignupFormSchema = z.object({
     displayName: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -162,5 +165,75 @@ export async function logout() {
     // On successful logout, redirect to login
     revalidatePath('/login');
     redirect('/login');
+}
+
+
+
+// Event creation action
+
+export type CreateEventState = {
+    errors?: {
+        title?: string[];
+        description?: string[];
+    };
+    message?: string | null;
+}
+
+const CreateEventSchema = z.object({
+    title: z.string().min(3, { message: "Title must be at least 3 characters." }),
+    description: z.string().optional(),
+});
+
+export async function createEvent(prevState: CreateEventState, formData: FormData): Promise<CreateEventState> {
+    if(!auth.currentUser) {
+        return { message: "Authentication error: Not logged in."}
+    }
+
+    const validatedFiields = CreateEventSchema.safeParse({
+        title: formData.get('title'),
+        description: formData.get('description'),
+    })
+
+    if(!validatedFiields.success) {
+        return {
+            errors: validatedFiields.error.flatten().fieldErrors,
+            message: 'Missing or invalid fields. Failed to create event.',
+        }
+    }
+
+    const { title, description } = validatedFiields.data;
+    const user = auth.currentUser;
+
+    try{
+        // 1. Get the user's organization ID from our 'users' collection
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if(!userDoc.exists()) {
+            return { message: "Database error: User profile not found."}
+        }
+        const  organizationId  = userDoc.data().organizationId;
+
+        // 2. Generate a unique, short ID for the event
+        const eventId = nanoid(6).toUpperCase();
+
+        // 3. Create the new event document in a sub-collection
+        const eventRef = doc(db, `organizations/${organizationId}/events/`, eventId);
+
+        await setDoc(eventRef, {
+            id: eventId,
+            title: title,
+            description: description || "",
+            ownerUid: user.uid,
+            admins: [user.uid], // The creator is the first admin
+            createdAt: Timestamp.now(),
+        });
+    } catch (error) {
+        console.error("Create Event Error:", error);
+        return { message: "Database error: Failed to create event."}
+    }
+
+    // 4. Revalidate the dashboard path to show the new event
+    revalidatePath('/dashboard');
+    return  { message: `Successfully created event ${formData.get('title')}`};
 }
 

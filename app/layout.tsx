@@ -31,7 +31,7 @@ export default function RootLayout({
         className={`${calSans.className} antialiased`}
       >
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <Navbar />
+          {/*<Navbar />*/}
           {children}
           <Analytics />
       </ThemeProvider>
