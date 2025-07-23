@@ -1,4 +1,4 @@
-import {BelanosimaFont, PlayWriteNewZealandFont} from "@/app/ui/fonts";
+import {PlayWriteNewZealandFont} from "@/app/ui/fonts";
 import Link from "next/link";
 import ToggleSwitch from "@/app/ui/ToggleSwitch";
 import {QrCodeIcon, BellAlertIcon, ChatBubbleOvalLeftIcon} from "@heroicons/react/24/outline";
