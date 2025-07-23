@@ -2,8 +2,8 @@
 
 import ToggleSwitch from "@/app/ui/ToggleSwitch";
 import Link from "next/link";
+import {logout} from "@/app/lib/actions";
 import {useState} from "react";
-import LunaLogo from "@/app/ui/luna-logo";
 
 export default function Navbar() {
 
@@ -17,15 +17,16 @@ export default function Navbar() {
     return(
         <nav className={`max-w-7xl mx-auto`}>
             <div className={`p-4 flex justify-between items-center border-b border-b-gray-700`}>
-                <div className={`text-sm`}><LunaLogo/></div>
-                
+                <Link href={`/`}>
+                    <h1 className={`font-bold text-2xl hover:scale-120 transition-all duration-200`}>Luna.</h1>
+                </Link>
+
                 {/* Desktop Navbar */}
                 <div className={`hidden md:block`}>
                     <ul className={`flex gap-4`}>
                         <li><Link href={`/signup`}>Sign Up</Link></li>
                         <li><Link href={`/dashboard`}>Dashboard</Link></li>
                         <li><ToggleSwitch/></li>
-
                     </ul>
                 </div>
 
