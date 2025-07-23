@@ -1,4 +1,4 @@
-import {PlayWriteNewZealandFont} from "@/app/ui/fonts";
+import {BelanosimaFont, PlayWriteNewZealandFont} from "@/app/ui/fonts";
 import Link from "next/link";
 import ToggleSwitch from "@/app/ui/ToggleSwitch";
 import {QrCodeIcon, BellAlertIcon, ChatBubbleOvalLeftIcon} from "@heroicons/react/24/outline";
@@ -25,7 +25,7 @@ export default function Home() {
 
                     <p className="my-6 max-w-2xl text-sm sm:text-xl text-center mx-auto tracking-wide">
                         <span className="opacity-70">From college convocations to corporate workshops,</span>{' '}
-                        Luna is the <span className="font-semibold text-white">single source of truth</span>{' '}
+                        Luna is the <span className={`font-semibold`}>single source of truth</span>{' '}
                         <span className="opacity-90">for your attendees.</span>{' '}
                         <span className="opacity-70">No apps, no sign-ups, just</span>{' '}
                         <span className="opacity-100">real-time information</span>{' '}
