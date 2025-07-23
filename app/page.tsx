@@ -7,11 +7,11 @@ export default function Home() {
     return(
         <>
             <nav className={`flex mx-auto max-w-7xl justify-between text-center p-4 `}>
-                <h1>Luna.</h1>
+                <Link href={`/`}><h1 className={`text-xl hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}>Luna.</h1></Link>
                 <ul className={`flex gap-4 justify-between`}>
-                    <li><Link href={`/login`}>Login</Link></li>
-                    <li><Link href={`/dashboard`}>Dashboard</Link></li>
-                    <li><ToggleSwitch /></li>
+                    <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}><Link href={`/login`}>Login</Link></li>
+                    <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}><Link href={`/dashboard`}>Dashboard</Link></li>
+                    <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}><ToggleSwitch /></li>
                 </ul>
 
             </nav>
@@ -45,8 +45,8 @@ export default function Home() {
             {/*    Features */}
                 <section className={``}>
                 {/*    Section Header */}
-                    <div className={`text-center space-y-3 mb-5`}>
-                        <h2 className={`text-5xl md:text-6xl `}>Everything You Need.</h2>
+                    <div className={`text-center space-y-5 mb-5`}>
+                        <h2 className={`text-5xl md:text-6xl `}><span className={`${PlayWriteNewZealandFont.className} bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-orange-600`}>Everything</span> You Need.</h2>
                         <h3 className={`text-3xl md:text-4xl`}>Nothing You Don&apos;t.</h3>
                         <p className={`text-xl mt-5 `}>Focus on your event, not on managing communication chaos. </p>
                     </div>
@@ -78,21 +78,32 @@ export default function Home() {
 
 
             {/*   Call to action */}
-                <section className={`flex flex-col items-center text-center justify-center min-h-screen`}>
-                    <div className={`max-w-5xl mx-auto space-y-3 mb-5`}>
-                        <h2 className={`text-5xl md:text-6xl `}>Ready to Transform Your Events?</h2>
-                        <p className={`text-xl mt-5 `}>
+                <section className={`flex flex-col items-center text-center  justify-center min-h-screen`}>
+                    <div className={`max-w-5xl mx-auto mb-5 space-y-5`}>
+                        <h2 className={`text-5xl md:text-6xl light:text-black/80`}>Ready to <span className={`bg-clip-text text-transparent bg-gradient-to-r from-teal-300 to-amber-600 ${PlayWriteNewZealandFont.className}`}>Transform</span> Your Events <span className={`bg-clip-text text-transparent bg-gradient-to-r from-teal-300 to-amber-600 `}>?</span></h2>
+                        <p className={`my-6 max-w-2xl text-sm sm:text-xl text-center mx-auto tracking-wide `}>
                             Join thousands of event organizers who&apos;ve discovered the power of seamless,
                             real-time communication. Create your first event for free, no credit card required.
                         </p>
-                        <Link href={`/signup`}>
-                            <button className="px-6 py-4 border border-gray-700 rounded-md">
-                            <span className="relative z-10 text-lg">Start for Free</span>
-                            </button>
-                        </Link>
+                        <button>
+                            <Link
+                                href={`/signup`}
+                                className={`border  border-gray-700 bg-gradient-to-r from-teal-300 to-amber-600 text-white py-2 px-4 rounded-md`}
+                            >
+                                Get Started for free
+                            </Link>
+                        </button>
                     </div>
                 </section>
             </main>
+
+            <footer className="py-8 md:py-12 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-sm">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
+                    <p className=" light:text-slate-500 font-medium">
+                        &copy; 2025 Luna. Crafted with care for event organizers worldwide.
+                    </p>
+                </div>
+            </footer>
         </>
     )
 }

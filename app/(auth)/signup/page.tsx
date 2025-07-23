@@ -14,11 +14,11 @@ export default function SignupPage() {
 
     return(
         <main className={`flex items-center justify-center min-h-screen`}>
-            <div className={`relative mx-auto flex w-full max-w-[700px] flex-col space-y-2.5 p-4`}>
-                <div className={`flex h-20 w-full items-end rounded-lg p-3 border border-gray-700 text-2xl font-bold`}>Luna.</div>
+            <div className={`relative mx-auto flex w-full max-w-[400px] flex-col space-y-2.5 p-4`}>
+                <div className={`flex h-20 w-full items-end rounded-lg p-3 border border-gray-400 text-2xl font-bold`}>Luna.</div>
 
                 <form action={dispatch} className={`space-y-3`}>
-                    <div className={`flex-1 rounded-lg px-6 pb-4 pt-8 shadow-md dark: border border-gray-700`}>
+                    <div className={`flex-1 rounded-lg px-6 pb-4 pt-8 shadow-md dark: border border-gray-400`}>
                         <h1 className={`mb-3 text-xl font-semibold`}>Create your Workspace</h1>
 
                         <div className={`w-full`}>
