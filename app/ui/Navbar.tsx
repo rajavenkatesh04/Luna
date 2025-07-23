@@ -15,7 +15,7 @@ export default function Navbar() {
     };
 
     return(
-        <nav className={`max-w-7xl mx-auto`}>
+        <nav className={`max-w-7xl mx-auto bg-transparent bg-red-100 sticky top-0 z-50 `}>
             <div className={`p-4 flex justify-between items-center border-b border-b-gray-700`}>
                 <Link href={`/`}>
                     <h1 className={`font-bold text-2xl hover:scale-120 transition-all duration-200`}>Luna.</h1>
