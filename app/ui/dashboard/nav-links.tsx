@@ -11,8 +11,9 @@ import {
 
 const links = [
     {name : 'Home', href : '/dashboard', icon : HomeIcon},
-    {name : 'Events', href : '/dashboard/events', icon : UserGroupIcon},
+    {name : 'Admins', href : '/dashboard/admins', icon : UserGroupIcon},
     {name : 'Announcements', href : '/dashboard/announcements', icon: DocumentDuplicateIcon},
+    {name : 'Events', href : '/dashboard/events', icon: DocumentDuplicateIcon},
 ]
 
 export default function NavLinks() {
