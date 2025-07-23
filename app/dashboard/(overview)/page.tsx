@@ -2,7 +2,7 @@
 
 import {useEffect, useState} from "react";
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { collection, query, where, onSnapshot, getDoc, doc, DocumentData } from 'firebase/firestore';
+import { collection, query, onSnapshot, getDoc, doc, DocumentData } from 'firebase/firestore';
 import {auth, db} from "@/app/lib/firebase";
 import {useRouter} from "next/navigation";
 import CreateForm from "@/app/ui/events/create-form";

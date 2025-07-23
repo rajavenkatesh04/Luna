@@ -2,7 +2,6 @@
 
 import ToggleSwitch from "@/app/ui/ToggleSwitch";
 import Link from "next/link";
-import {logout} from "@/app/lib/actions";
 import {useState} from "react";
 import LunaLogo from "@/app/ui/luna-logo";
 
@@ -26,16 +25,7 @@ export default function Navbar() {
                         <li><Link href={`/signup`}>Sign Up</Link></li>
                         <li><Link href={`/dashboard`}>Dashboard</Link></li>
                         <li><ToggleSwitch/></li>
-                        {/*<li>*/}
-                        {/*    <form action={logout}>*/}
-                        {/*        <button*/}
-                        {/*            type={"submit"}*/}
-                        {/*            className={`rounded-md hover:bg-gray-300 px-3 py-1`}*/}
-                        {/*        >*/}
-                        {/*            Log out*/}
-                        {/*        </button>*/}
-                        {/*    </form>*/}
-                        {/*</li>*/}
+
                     </ul>
                 </div>
 

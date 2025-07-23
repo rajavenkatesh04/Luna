@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Cal_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/app/ui/theme-provider";
-import Navbar from "@/app/ui/Navbar";
 import { Analytics } from "@vercel/analytics/next"
 
 const calSans = Cal_Sans({

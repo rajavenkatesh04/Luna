@@ -8,7 +8,6 @@ import {revalidatePath} from "next/cache";
 import {redirect} from "next/navigation";
 import {nanoid} from "nanoid";
 import { Timestamp } from 'firebase/firestore';
-import { arrayUnion } from 'firebase/firestore';
 
 const SignupFormSchema = z.object({
     displayName: z.string().min(2, { message: "Name must be at least 2 characters." }),

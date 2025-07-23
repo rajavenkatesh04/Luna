@@ -6,7 +6,9 @@ export const metadata: Metadata = {
 
 
 export default async function Page() {
-    const Announcements = "";
-
-
+    return (
+        <div>
+            Create Event
+        </div>
+    )
 }

@@ -84,16 +84,21 @@ export default function GoogleSignInButton() {
             // Success, redirect to dashboard
             router.push('/dashboard');
 
-        } catch (error: any) { // Use 'any' to access error.code
-            // --- THIS IS THE CRITICAL FIX ---
-            // Catch the specific error when an account already exists with the same email
-            if (error.code === 'auth/account-exists-with-different-credential') {
-                setError('An account with this email already exists. Please sign in with your original method (e.g., password).');
+        } catch (error: unknown) { // Use 'unknown' for type safety
+            // --- THIS IS THE ESLINT FIX ---
+            if (typeof error === 'object' && error !== null && 'code' in error) {
+                const firebaseError = error as { code: string };
+                if (firebaseError.code === 'auth/account-exists-with-different-credential') {
+                    setError('An account with this email already exists. Please sign in with your original method (e.g., password).');
+                } else {
+                    // Handle other known Firebase errors or generic errors
+                    setError("Failed to sign in with Google. Please try again.");
+                }
             } else {
-                // Handle other generic errors
-                console.error("Google Sign-In Error", error);
-                setError("Failed to sign in with Google. Please try again.");
+                // Handle non-object errors
+                setError("An unexpected error occurred.");
             }
+            console.error("Google Sign-In Error", error);
             setIsLoading(false);
         }
     };
