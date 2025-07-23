@@ -1,7 +1,6 @@
 import { Playwrite_NZ  , Geist, Belanosima} from "next/font/google"
 
 export const PlayWriteNewZealandFont = Playwrite_NZ({
-    subsets: ['latin'],
     weight: ['400'],
 })
 
