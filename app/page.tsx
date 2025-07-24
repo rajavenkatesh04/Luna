@@ -1,20 +1,13 @@
 import {PlayWriteNewZealandFont} from "@/app/ui/fonts";
 import Link from "next/link";
-import ToggleSwitch from "@/app/ui/ToggleSwitch";
 import {QrCodeIcon, BellAlertIcon, ChatBubbleOvalLeftIcon} from "@heroicons/react/24/outline";
+import Navbar from "@/app/ui/Navbar";
 
 export default function Home() {
     return(
         <>
-            <nav className={`flex mx-auto max-w-7xl justify-between text-center p-4 `}>
-                <Link href={`/`}><h1 className={`text-xl hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}>Luna.</h1></Link>
-                <ul className={`flex gap-4 justify-between`}>
-                    <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}><Link href={`/login`}>Login</Link></li>
-                    <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}><Link href={`/dashboard`}>Dashboard</Link></li>
-                    <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}><ToggleSwitch /></li>
-                </ul>
+            <Navbar/>
 
-            </nav>
             <main className={`grow p-4`}>
                 <section className={`flex flex-col items-center justify-center min-h-screen`}>
                     <h1 className={`${PlayWriteNewZealandFont.className} mb-4 text-xl sm:text-5xl`}>Instant
@@ -56,21 +49,21 @@ export default function Home() {
                     {/*    Feature 1 */}
                         <div className={`border rounded-md px-10 py-5 flex flex-col items-center text-center justify-center space-y-3`}>
                             <QrCodeIcon className={`h-12 w-12 text-gray-600 dark:text-gray-400`}/>
-                            <h3 className={`text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-teal-400`}>Instant QR Access</h3>
+                            <h3 className={`text-xl bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-orange-600`}>Instant QR Access</h3>
                             <p >Attendees scan a QR code to instantly join the event feed. No app downloads, no friction.</p>
                         </div>
 
                     {/*    Feature 2 */}
                         <div className={`border rounded-md px-10 py-5  flex flex-col items-center text-center justify-center space-y-3`}>
                             <BellAlertIcon className={`h-12 w-12 text-gray-600 dark:text-gray-400`}/>
-                            <h3 className={`text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-teal-400`}>Push Notification</h3>
+                            <h3 className={`text-xl bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-orange-600`}>Push Notification</h3>
                             <p>Send live updates, schedule changes, and emergency alerts directly to attendees&apos; phones.</p>
                         </div>
 
                     {/*    Feature 3 */}
                         <div className={`border rounded-md px-10 py-5 flex flex-col items-center text-center justify-center space-y-3`}>
                             <ChatBubbleOvalLeftIcon className="h-12 w-12  text-gray-600 dark:text-gray-400" />
-                            <h3 className={`text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-teal-400`}>Live Chat & Polls</h3>
+                            <h3 className={`text-xl bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-orange-600`}>Live Chat & Polls</h3>
                             <p>Engage your audience with real-time chat rooms, Q&A sessions, and instant feedback polls.</p>
                         </div>
                     </div>
