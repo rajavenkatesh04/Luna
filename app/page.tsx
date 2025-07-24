@@ -11,7 +11,7 @@ export default function Home() {
 
             <main className={`grow p-4`}>
                 <section className={`text-center space-y-5 mb-5 min-h-screen justify-center content-center`}>
-                    <h3 className={`${PlayWriteNewZealandFont.className} text-5xl md:text-5xl `}>Instant
+                    <h3 className={`${PlayWriteNewZealandFont.className} text-5xl md:text-5xl space-y-2`}>Instant
                         <span className={`bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-emerald-800`}> Event</span>  Updates,
                         <br />
                     </h3>
@@ -98,10 +98,10 @@ export default function Home() {
                 </section>
             </main>
 
-            <footer className="py-4 md:py-4 border-t border-t-white bg-gradient-to-r  from-red-100 to-pink-700 backdrop-blur-sm">
+            <footer className="py-4 md:py-4 border-t  border-t-white bg-gradient-to-r  from-red-500 to-pink-700 backdrop-blur-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
-                    <p className=" light:text-slate-500 text-xs md:text-xl">
-                        &copy; 2025 Luna. <br/>
+                    <p className="text-xs md:text-xl">
+                        &copy; 2025 Luna.
                         Crafted with care for event organizers worldwide.
                     </p>
                 </div>
