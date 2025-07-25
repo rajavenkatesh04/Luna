@@ -11,7 +11,6 @@ async function getSession() {
     try {
         initFirebaseAdminApp();
 
-        // --- THIS IS THE FIX ---
         // We must first 'await' the cookies() function to get the cookie store.
         const cookieStore = await cookies();
         const sessionCookie = cookieStore.get('session')?.value;

@@ -13,6 +13,8 @@ export default function Navbar() {
         setIsOpen(!isOpen);
     };
 
+
+
     return(
         <nav className={`max-w-7xl mx-auto backdrop-blur-md border-b border-gray-700 sticky top-0 z-50`}>
             <div className={`p-4 flex justify-between items-center`}>
@@ -22,6 +24,7 @@ export default function Navbar() {
                 {/*Desktop Navbar*/}
                 <div className={`hidden md:block`}>
                     <ul className={`flex gap-4 justify-between`}>
+                        <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}></li>
                         <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}><Link href={`/join`}>Join</Link></li>
                         <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}><Link href={`/login`}>Login</Link></li>
                         <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}><Link href={`/dashboard`}>Dashboard</Link></li>

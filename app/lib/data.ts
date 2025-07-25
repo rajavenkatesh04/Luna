@@ -61,3 +61,67 @@ export async function fetchLatestEvents(userId: string) {
         return [];
     }
 }
+
+
+// Fetches the complete user profile, including organization name and role
+export async function fetchUserProfile(userId: string) {
+    noStore();
+    try {
+        const userDocRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userDocRef);
+
+        if (!userDoc.exists()) {
+            console.error("No user document found for UID:", userId);
+            return null;
+        }
+
+        const userData = userDoc.data() as User;
+        const orgId = userData.organizationId;
+
+        const orgDocRef = doc(db, 'organizations', orgId);
+        const orgDoc = await getDoc(orgDocRef);
+
+        if (!orgDoc.exists()) {
+            console.error("No organization document found for ID:", orgId);
+            // Return user data even if org is missing, with a default name
+            return { ...userData, organizationName: 'Unknown Workspace' };
+        }
+
+        // Combine user data with the organization's name
+        return {
+            ...userData,
+            organizationName: orgDoc.data().name,
+        };
+
+    } catch (error) {
+        console.error('Database Error fetching user profile:', error);
+        return null;
+    }
+}
+
+// Fetches a single event by its ID, ensuring the user has permission.
+export async function fetchEventById(userId: string, eventId: string) {
+    noStore();
+    try {
+        const orgId = await getOrganizationId(userId);
+        if (!orgId) {
+            console.error("User has no organization ID.");
+            return null;
+        }
+
+        const eventRef = doc(db, `organizations/${orgId}/events`, eventId);
+        const eventDoc = await getDoc(eventRef);
+
+        if (!eventDoc.exists()) {
+            console.error(`Event with ID ${eventId} not found.`);
+            return null;
+        }
+
+        return { ...eventDoc.data(), docId: eventDoc.id } as Event;
+
+    } catch (error) {
+        console.error('Database Error fetching event by ID:', error);
+        return null;
+    }
+}
+

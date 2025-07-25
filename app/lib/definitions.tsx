@@ -16,28 +16,29 @@ export interface Organisation {
 
 // This is the blueprint for a single Event document in Firestore.
 export type Event = {
-    docId: string; // The unique ID from Firestore
-    id: string; // The short, shareable ID
+    docId: string;
+    id: string;
     title: string;
     description: string;
     ownerUid: string;
     admins: string[];
+    // When we pass this from a Server to a Client Component, it must be a string.
+    createdAt: string | { seconds: number; nanoseconds: number; };
+};
+
+
+export type Announcement = {
+    id: string;
+    authorName: string;
+    authorId: string;
+    title: string;
+    content: string;
+    isPinned?: boolean; // Optional property for pinning
     createdAt: {
         seconds: number;
         nanoseconds: number;
     };
 };
-
-
-export interface Announcement {
-    id: string;
-    title: string;
-    content: string;
-    isPinned?: boolean;
-    eventId: string;
-    creatorUid: string;
-    timeStamp: Date;
-}
 
 export interface Poll {
     id: string;
@@ -49,6 +50,8 @@ export interface Poll {
     creatorUid: string;
     timeStamp: Date;
 }
+
+
 
 
 
