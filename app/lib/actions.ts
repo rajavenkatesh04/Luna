@@ -98,7 +98,7 @@ export async function createEvent(prevState: CreateEventState, formData: FormDat
         return { message: "Database error: Failed to create event." };
     }
 
-    // 4. Revalidate the events page to show the new event
+    // 4. On success, revalidate the events page and redirect the user there.
     revalidatePath('/dashboard/events');
-    return { message: `Successfully created event: ${title}` };
+    redirect('/dashboard/events');
 }

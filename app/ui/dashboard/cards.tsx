@@ -13,9 +13,9 @@ function Card({ title, value, type }: { title: string; value: number; type: 'eve
         <div className="rounded-xl border border-gray-700  p-4 shadow-sm">
             <div className="flex items-center">
                 {Icon ? <Icon className="h-5 w-5" /> : null}
-                <h3 className="ml-2 text-sm font-medium">{title}</h3>
+                <h3 className="ml-2 text-sm font-medium underline ">{title}</h3>
             </div>
-            <p className="truncate rounded-xl px-4 py-8 text-center text-2xl font-bold">
+            <p className="truncate  mt-2  rounded-xl px-4 py-8 text-center text-2xl font-bold">
                 {value}
             </p>
         </div>

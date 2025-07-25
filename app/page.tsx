@@ -28,8 +28,8 @@ export default function Home() {
 
                     <button>
                         <Link
-                            href={`/signup`}
-                            className={`border border-gray-700 bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-2 px-4 rounded-md`}
+                            href={`/login`}
+                            className={`border border-gray-700 bg-gradient-to-r from-blue-600 to-emerald-500 text-white hover:opacity-70 transition-all duration-300 py-2 px-4 rounded-md`}
                         >
                             Get Started for free
                         </Link>
@@ -88,8 +88,8 @@ export default function Home() {
                         </p>
                         <button>
                             <Link
-                                href={`/signup`}
-                                className={`border  border-gray-700 bg-gradient-to-r from-teal-300 to-amber-600 text-white py-2 px-4 rounded-md`}
+                                href={`/login`}
+                                className={`border  border-gray-700 bg-gradient-to-r from-teal-300 to-amber-600 text-white hover:opacity-70 transition-all duration-300 py-2 px-4 rounded-md`}
                             >
                                 Get Started for free
                             </Link>

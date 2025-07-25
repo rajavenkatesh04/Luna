@@ -18,7 +18,7 @@ export default async function SideNav() {
     return (
         <div className="flex h-full flex-col px-3 py-4 md:px-2">
             <Link
-                className="mb-2 flex h-20 items-end justify-start rounded-md  border border-gray-700 p-4 md:h-40"
+                className="mb-2 flex h-20 items-end justify-start bg-gradient-to-r text-white from-red-400 to-pink-700  rounded-md  p-4 md:h-40"
                 href="/"
             >
                 <div className="w-32  md:w-40">

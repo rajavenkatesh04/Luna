@@ -2,7 +2,6 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { fetchLatestEvents } from '@/app/lib/data';
 import { auth } from '@/app/lib/firebase-admin';
-import CreateEventForm from '@/app/ui/dashboard/create-event-form';
 import { CardsSkeleton } from '@/app/ui/skeletons';
 
 async function EventsList() {
@@ -40,7 +39,12 @@ export default function Page() {
         <main>
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-3xl font-bold">Events</h1>
-                <CreateEventForm />
+                <Link
+                    href="/dashboard/events/create"
+                    className="flex h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 active:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50">
+                        <span className="mr-2">+</span> Create Event
+                </Link>
+
             </div>
             <Suspense fallback={<CardsSkeleton />}>
                 <EventsList />

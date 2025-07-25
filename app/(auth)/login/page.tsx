@@ -5,7 +5,7 @@ export default function LoginPage() {
         <main className="flex items-center justify-center min-h-screen ">
             <div className="relative mx-auto flex w-full max-w-sm flex-col space-y-4 p-4">
                 <div className="flex flex-col items-center justify-center text-center">
-                    <span className="text-4xl font-extrabold text-blue-600">Luna</span>
+                    <span className="text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-teal-400">Luna</span>
                     <h1 className="mt-2 text-2xl font-semibold">Welcome</h1>
                     <p className="mt-1 text-gray-500">The simplest way to manage your event communications.</p>
                 </div>
