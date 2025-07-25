@@ -98,7 +98,7 @@ export default function Home() {
                 </section>
             </main>
 
-            <footer className="py-4 md:py-4 border-t  border-t-white bg-gradient-to-r  from-red-500 to-pink-700 backdrop-blur-sm">
+            <footer className="py-4 md:py-4 border-t text-white border-t-white bg-gradient-to-r  from-red-500 to-pink-700 backdrop-blur-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
                     <p className="text-xs md:text-xl">
                         &copy; 2025 Luna.

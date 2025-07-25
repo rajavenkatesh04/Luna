@@ -1,12 +1,13 @@
+// app/ui/google-signin-button.tsx
 'use client';
 
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth, db } from "@/app/lib/firebase";
 import { useState } from "react";
-import { doc, getDoc, setDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
-// Simple Google Icon SVG
+// Google Icon SVG component
 const GoogleIcon = () => (
     <svg className="w-5 h-5" viewBox="0 0 48 48">
         <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
@@ -17,9 +18,7 @@ const GoogleIcon = () => (
     </svg>
 );
 
-const PUBLIC_EMAIL_DOMAINS = new Set([
-    'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com'
-]);
+const PUBLIC_EMAIL_DOMAINS = new Set(['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com']);
 
 export default function GoogleSignInButton() {
     const [isLoading, setIsLoading] = useState(false);
@@ -33,69 +32,59 @@ export default function GoogleSignInButton() {
         try {
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
+            if (!user.email) throw new Error("No email returned from Google.");
 
-            if (!user.email) {
-                throw new Error("No email returned from Google.");
-            }
+            const idToken = await user.getIdToken();
+            const response = await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken }),
+            });
 
-            // Check if user exists in our Firestore
+            if (!response.ok) throw new Error("Failed to create session.");
+
             const userRef = doc(db, 'users', user.uid);
             const userDoc = await getDoc(userRef);
 
             if (userDoc.exists()) {
-                // User exists, just log them in and redirect
                 router.push('/dashboard');
                 return;
             }
 
-            // User is new, run claim domain check and create account
             const emailDomain = user.email.split('@')[1];
-            if (!PUBLIC_EMAIL_DOMAINS.has(emailDomain)) {
+
+            if (PUBLIC_EMAIL_DOMAINS.has(emailDomain)) {
+                router.push('/complete-profile');
+            } else {
                 const orgsRef = collection(db, 'organizations');
                 const q = query(orgsRef, where("claimedDomain", "==", emailDomain));
                 const querySnapshot = await getDocs(q);
+
                 if (!querySnapshot.empty) {
-                    setError(`Domain ${emailDomain} is already claimed. Please ask for an invitation.`);
+                    setError(`The domain ${emailDomain} is already claimed. Please ask for an invitation.`);
+                    await auth.signOut();
+                    await fetch('/api/auth/session', { method: 'DELETE' });
                     setIsLoading(false);
-                    await auth.signOut(); // Sign out the user as they can't proceed
                     return;
                 }
+
+                const orgName = emailDomain.split('.')[0].replace(/^\w/, c => c.toUpperCase()) + " Workspace";
+                const batch = writeBatch(db);
+                const orgRef = doc(collection(db, 'organizations'));
+                batch.set(orgRef, { name: orgName, ownerUid: user.uid, subscriptionTier: 'free', claimedDomain: emailDomain });
+                batch.set(userRef, { uid: user.uid, email: user.email, displayName: user.displayName || "User", organizationId: orgRef.id, role: 'owner' });
+                await batch.commit();
+                router.push('/dashboard');
             }
-
-            // Create new organization and user document
-            const organizationName = user.displayName ? `${user.displayName}'s Workspace` : "My Workspace";
-            const batch = writeBatch(db);
-            const orgRef = doc(collection(db, 'organizations'));
-            batch.set(orgRef, {
-                name: organizationName,
-                ownerUid: user.uid,
-                subscriptionTier: 'free',
-                ...(!PUBLIC_EMAIL_DOMAINS.has(emailDomain) && { claimedDomain: emailDomain })
-            });
-            batch.set(userRef, {
-                uid: user.uid,
-                email: user.email,
-                displayName: user.displayName || "User",
-                organizationId: orgRef.id,
-                role: 'owner',
-            });
-            await batch.commit();
-
-            // Success, redirect to dashboard
-            router.push('/dashboard');
-
-        } catch (error: unknown) { // Use 'unknown' for type safety
-            // --- THIS IS THE ESLINT FIX ---
+        } catch (error: unknown) { // This fixes the ESLint error
             if (typeof error === 'object' && error !== null && 'code' in error) {
                 const firebaseError = error as { code: string };
                 if (firebaseError.code === 'auth/account-exists-with-different-credential') {
-                    setError('An account with this email already exists. Please sign in with your original method (e.g., password).');
+                    setError('This email is already associated with a different sign-in method.');
                 } else {
-                    // Handle other known Firebase errors or generic errors
-                    setError("Failed to sign in with Google. Please try again.");
+                    setError("Failed to sign in. Please try again.");
                 }
             } else {
-                // Handle non-object errors
                 setError("An unexpected error occurred.");
             }
             console.error("Google Sign-In Error", error);
@@ -108,7 +97,7 @@ export default function GoogleSignInButton() {
             <button
                 onClick={handleSignIn}
                 disabled={isLoading}
-                className="mt-4 flex w-full items-center justify-center gap-3 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-3 rounded-md border border-gray-300  px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
                 <GoogleIcon />
                 <span>{isLoading ? 'Signing In...' : 'Sign in with Google'}</span>
