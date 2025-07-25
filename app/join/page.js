@@ -1,5 +1,3 @@
-import {text} from "node:stream/consumers";
-
 export default function Page() {
     return(
         <div className={`text-center justify-center content-center min-h-screen`}>

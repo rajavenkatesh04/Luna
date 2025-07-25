@@ -13,14 +13,21 @@ export interface Organisation {
     subscriptionTier: 'free' | 'pro' | 'enterprise';
 }
 
-export interface Event {
-    id: string;
+
+// This is the blueprint for a single Event document in Firestore.
+export type Event = {
+    docId: string; // The unique ID from Firestore
+    id: string; // The short, shareable ID
     title: string;
     description: string;
-    organisationId: string;
-    creatorUid: string;
-    timeStamp: Date;
-}
+    ownerUid: string;
+    admins: string[];
+    createdAt: {
+        seconds: number;
+        nanoseconds: number;
+    };
+};
+
 
 export interface Announcement {
     id: string;

@@ -10,8 +10,14 @@ import { cookies } from 'next/headers';
 async function getSession() {
     try {
         initFirebaseAdminApp();
-        const sessionCookie = cookies().get('session')?.value;
+
+        // --- THIS IS THE FIX ---
+        // We must first 'await' the cookies() function to get the cookie store.
+        const cookieStore = await cookies();
+        const sessionCookie = cookieStore.get('session')?.value;
+
         if (!sessionCookie) return null;
+
         // Verify the cookie is valid and not expired.
         const decodedClaims = await getAuth().verifySessionCookie(sessionCookie, true);
         return decodedClaims;

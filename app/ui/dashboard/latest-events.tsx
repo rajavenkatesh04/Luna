@@ -1,7 +1,6 @@
 import { fetchLatestEvents } from '@/app/lib/data';
 import { auth } from '@/app/lib/firebase-admin';
 import Link from 'next/link';
-import clsx from 'clsx';
 
 export default async function LatestEvents() {
     const session = await auth.getSession();

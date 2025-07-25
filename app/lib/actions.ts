@@ -11,11 +11,14 @@ import { cookies } from 'next/headers';
  */
 export async function logout() {
     try {
-        // This is less critical with session cookies but good practice
+        // This is less critical but good practice
         await signOut(auth);
 
-        // This is the correct way to delete the session cookie on the server
-        cookies().delete('session');
+        // --- THIS IS THE FIX ---
+        // We must first 'await' the cookies() function to get the cookie store,
+        // then we can call .set() on it.
+        const cookieStore = await cookies();
+        cookieStore.set('session', '', { maxAge: -1 });
 
     } catch (error) {
         console.error('Logout Error:', error);
@@ -24,5 +27,3 @@ export async function logout() {
     // Always redirect to login after attempting to log out
     redirect('/login');
 }
-
-// Note: We will add the createEvent action back later.

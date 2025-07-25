@@ -1,8 +1,9 @@
 import { collection, getDocs, query, doc, getDoc, orderBy, limit } from 'firebase/firestore';
 import { db } from './firebase';
 import { unstable_noStore as noStore } from 'next/cache';
+import { Event } from './definitions'; // <-- Import the blueprint
 
-// Helper function to get the user's organization ID from their user document
+// Helper function to get the user's organization ID
 async function getOrganizationId(userId: string): Promise<string | null> {
     const userDocRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userDocRef);
@@ -13,9 +14,9 @@ async function getOrganizationId(userId: string): Promise<string | null> {
     return userDoc.data().organizationId;
 }
 
-// Fetches the data for the stat cards on the dashboard overview
+// Function to fetch the data for the stat cards
 export async function fetchCardData(userId: string) {
-    noStore(); // Opts out of caching for this dynamic data
+    noStore();
     try {
         const orgId = await getOrganizationId(userId);
         if (!orgId) return { totalEvents: 0, totalAdmins: 0 };
@@ -24,7 +25,6 @@ export async function fetchCardData(userId: string) {
         const eventsSnapshot = await getDocs(eventsRef);
         const totalEvents = eventsSnapshot.size;
 
-        // Efficiently calculate total unique admins across all events
         const adminSets = eventsSnapshot.docs.map(doc => new Set(doc.data().admins));
         const totalAdmins = new Set(adminSets.flatMap(s => Array.from(s))).size;
 
@@ -35,7 +35,7 @@ export async function fetchCardData(userId: string) {
     }
 }
 
-// Fetches the 5 most recently created events
+// Function to fetch the 5 most recent events
 export async function fetchLatestEvents(userId: string) {
     noStore();
     try {
@@ -49,7 +49,13 @@ export async function fetchLatestEvents(userId: string) {
         );
 
         const eventsSnapshot = await getDocs(eventsQuery);
-        return eventsSnapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
+
+        const events = eventsSnapshot.docs.map(doc => {
+            return { ...doc.data(), docId: doc.id } as Event;
+        });
+
+        return events;
+
     } catch (error) {
         console.error('Database Error fetching latest events:', error);
         return [];

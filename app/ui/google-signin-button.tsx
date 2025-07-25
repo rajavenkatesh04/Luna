@@ -97,7 +97,7 @@ export default function GoogleSignInButton() {
             <button
                 onClick={handleSignIn}
                 disabled={isLoading}
-                className="flex w-full items-center justify-center gap-3 rounded-md border border-gray-300  px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-3 rounded-md border border-gray-300  px-4 py-2 text-sm font-medium hover:bg-gray-50 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
                 <GoogleIcon />
                 <span>{isLoading ? 'Signing In...' : 'Sign in with Google'}</span>
