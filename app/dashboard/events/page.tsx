@@ -27,7 +27,7 @@ async function EventsList() {
             ) : (
                 <div className="md:col-span-3 text-center py-12 border border-gray-700 rounded-lg shadow-md">
                     <h3 className="text-xl font-semibold">No events yet!</h3>
-                    <p className="text-gray-500 mt-2">Click the "+ Create Event" button to get started.</p>
+                    <p className="text-gray-500 mt-2">Click the <span className={`text-green-600`}>+ Create Event</span>  button to get started.</p>
                 </div>
             )}
         </div>
