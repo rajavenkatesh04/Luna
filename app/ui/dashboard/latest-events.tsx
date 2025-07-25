@@ -13,7 +13,7 @@ export default async function LatestEvents() {
             <h2 className="mb-4 text-xl md:text-2xl">
                 Recent Events
             </h2>
-            <div className="flex grow flex-col justify-between rounded-xl border border-gray-700 p-4 shadow-sm">
+            <div className="flex grow flex-col justify-between rounded-xl border border-gray-500 p-4 shadow-sm">
                 {latestEvents.length === 0 ? (
                     <div className="text-center py-8">
                         <p>No recent events found. Create one to get started!</p>
@@ -28,7 +28,7 @@ export default async function LatestEvents() {
                                 </div>
                                 <Link
                                     href={`/dashboard/events/${event.docId}`}
-                                    className="ml-4 flex-shrink-0 rounded-md border p-2 hover:bg-gray-100"
+                                    className="ml-4 flex-shrink-0 rounded-md border p-2 hover:bg-blue-500 hover:text-white"
                                 >
                                     <p className="font-medium text-sm">Manage</p>
                                 </Link>

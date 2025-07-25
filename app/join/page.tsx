@@ -3,7 +3,7 @@ export default function Page() {
         <div className={`text-center justify-center content-center min-h-screen`}>
             Scan Code / Enter code to join
             <div>
-                <input></input>
+                <h1>Soon!</h1>
             </div>
         </div>
     )

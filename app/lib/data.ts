@@ -1,7 +1,7 @@
 import { collection, getDocs, query, doc, getDoc, orderBy, limit } from 'firebase/firestore';
 import { db } from './firebase';
 import { unstable_noStore as noStore } from 'next/cache';
-import { Event } from './definitions'; // <-- Import the blueprint
+import { Event } from '@/app/lib/definitions'
 
 // Helper function to get the user's organization ID
 async function getOrganizationId(userId: string): Promise<string | null> {
