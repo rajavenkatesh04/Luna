@@ -1,29 +1,45 @@
+// app/lib/firebase-admin.ts
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { initFirebaseAdminApp } from './firebase-server';
 import { cookies } from 'next/headers';
 
-/**
- * Securely gets the user's session from the session cookie.
- * This function runs ONLY on the server.
- * @returns The decoded user claims if the session is valid, otherwise null.
- */
-async function getSession() {
-    try {
-        initFirebaseAdminApp();
-
-        // We must first 'await' the cookies() function to get the cookie store.
-        const cookieStore = await cookies();
-        const sessionCookie = cookieStore.get('session')?.value;
-
-        if (!sessionCookie) return null;
-
-        // Verify the cookie is valid and not expired.
-        const decodedClaims = await getAuth().verifySessionCookie(sessionCookie, true);
-        return decodedClaims;
-    } catch (error) {
-        // Session cookie is invalid, expired, or an error occurred.
-        return null;
+// Initialize Firebase Admin SDK
+export function initFirebaseAdminApp() {
+    if (getApps().length === 0) {
+        initializeApp({
+            credential: cert({
+                projectId: process.env.FIREBASE_PROJECT_ID,
+                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+            }),
+        });
     }
 }
 
-export const auth = { getSession };
+// Create auth helper that can verify sessions
+export const auth = {
+    async getSession() {
+        initFirebaseAdminApp();
+
+        try {
+            const cookieStore = await cookies();
+            const sessionCookie = cookieStore.get('session')?.value;
+
+            if (!sessionCookie) {
+                return null;
+            }
+
+            // Verify the session cookie and return user info
+            const decodedClaims = await getAuth().verifySessionCookie(sessionCookie);
+            return {
+                uid: decodedClaims.uid,
+                email: decodedClaims.email,
+                name: decodedClaims.name,
+                picture: decodedClaims.picture,
+            };
+        } catch (error) {
+            console.error('Session verification error:', error);
+            return null;
+        }
+    }
+};

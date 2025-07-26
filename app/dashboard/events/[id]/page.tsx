@@ -1,26 +1,27 @@
-// app/dashboard/events/[id]/page.tsx
 import { auth } from '@/app/lib/firebase-admin';
-import { fetchEventById, fetchUserProfile } from '@/app/lib/data';
+import { fetchEventById, fetchUserProfile, fetchEventAdmins } from '@/app/lib/data';
 import { notFound } from 'next/navigation';
 import Breadcrumbs from '@/app/ui/dashboard/events/breadcrumbs';
 import Link from 'next/link';
 import { EyeIcon, PencilIcon, QrCodeIcon } from '@heroicons/react/24/outline';
 import AnnouncementsTab from '@/app/ui/dashboard/events/announcements-tab';
+import AdminsTab from "@/app/ui/dashboard/events/admins-tab";
+import { User } from '@/app/lib/definitions';
+import clsx from 'clsx';
 
-export default async function Page({ params }: { params: { id: string } }) {
-
-    // Destructuring the id from params resolves the dynamic access warning.
+// This page now accepts searchParams to handle the active tab
+export default async function Page({ params, searchParams }: { params: { id: string }, searchParams?: { tab?: string } }) {
     const { id: eventId } = params;
-
     const session = await auth.getSession();
-    if (!session) {
-        notFound();
-    }
+    if (!session) notFound();
 
-    // We fetch both the event and user profile data at the same time for efficiency.
-    const [event, userProfile] = await Promise.all([
+    const activeTab = searchParams?.tab || 'announcements';
+
+    // Fetch all necessary data in parallel for maximum efficiency
+    const [event, userProfile, admins] = await Promise.all([
         fetchEventById(session.uid, eventId),
-        fetchUserProfile(session.uid)
+        fetchUserProfile(session.uid),
+        fetchEventAdmins(session.uid, eventId) // We need the full admin profiles
     ]);
 
     if (!event || !userProfile) {
@@ -29,7 +30,6 @@ export default async function Page({ params }: { params: { id: string } }) {
 
     return (
         <main>
-            {/* Dynamic Breadcrumbs now use the fetched event title */}
             <Breadcrumbs
                 breadcrumbs={[
                     { label: 'Events', href: '/dashboard/events' },
@@ -67,21 +67,25 @@ export default async function Page({ params }: { params: { id: string } }) {
             <div className="w-full">
                 <div className="border-b border-gray-200">
                     <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-                        <a href="#" className="border-blue-500 text-blue-600 whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium">
+                        <Link href={`/dashboard/events/${eventId}`} className={clsx("whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium", {
+                            "border-blue-500 text-blue-600": activeTab === 'announcements',
+                            "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700": activeTab !== 'announcements'
+                        })}>
                             Announcements
-                        </a>
-                        <a href="#" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium">
+                        </Link>
+                        <Link href={`/dashboard/events/${eventId}?tab=admins`} className={clsx("whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium", {
+                            "border-blue-500 text-blue-600": activeTab === 'admins',
+                            "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700": activeTab !== 'admins'
+                        })}>
                             Admins
-                        </a>
-                        <a href="#" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium">
-                            Settings
-                        </a>
+                        </Link>
                     </nav>
                 </div>
 
                 {/* Tab Content Area */}
                 <div className="py-6">
-                    <AnnouncementsTab eventId={event.docId} orgId={userProfile.organizationId} />
+                    {activeTab === 'announcements' && <AnnouncementsTab eventId={event.docId} orgId={userProfile.organizationId} />}
+                    {activeTab === 'admins' && <AdminsTab eventId={event.docId} admins={admins as User[]} />}
                 </div>
             </div>
         </main>
