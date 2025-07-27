@@ -10,7 +10,7 @@ import SettingsTab from '@/app/ui/dashboard/events/settings-tab';
 import clsx from 'clsx';
 import { fetchUsersByUid } from '@/app/lib/data';
 
-// Update the function signature to accept searchParams
+
 export default async function Page({
                                        params,
                                        searchParams

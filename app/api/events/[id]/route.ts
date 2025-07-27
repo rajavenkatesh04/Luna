@@ -1,11 +1,10 @@
-// app/api/events/[id]/route.ts
 import { collectionGroup, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '@/app/lib/firebase';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
     try {
-        const eventId = params.id; // Corrected: Removed 'await'
+        const eventId = params.id;
 
         if (!eventId) {
             return NextResponse.json({ error: 'Event ID is required' }, { status: 400 });

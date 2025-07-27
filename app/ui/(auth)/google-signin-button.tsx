@@ -1,9 +1,9 @@
 'use client'
 
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { auth, db } from "@/app/lib/(firebase)/firebase";
+import { auth, db } from "@/app/lib/firebase";
 import { useState } from "react";
-import { doc, getDoc, setDoc, collection, writeBatch, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, collection, writeBatch, query, where, getDocs } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
 const GoogleIcon = () => (
@@ -102,9 +102,14 @@ export default function GoogleSignInButton() {
 
             }
 
-        } catch (error: any) {
-            console.error( "Sign-in Error",error);
-            setError(error.message || "An unexpected error occurred.")
+        } catch (error: unknown) {
+            console.error( "Sign-in Error", error);
+            // Type-safe error handling
+            if (error instanceof Error) {
+                setError(error.message);
+            } else {
+                setError("An unexpected error occurred.");
+            }
             setIsLoading(false);
         }
     };

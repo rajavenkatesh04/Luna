@@ -26,4 +26,4 @@ async function getSession() {
     }
 }
 
-export const   auth = { getSession };
+export const  auth = { getSession };
