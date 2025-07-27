@@ -23,24 +23,7 @@ export function CardsSkeleton() {
         <>
             <CardSkeleton />
             <CardSkeleton />
-            <CardSkeleton />
-            <CardSkeleton />
         </>
-    );
-}
-
-export function RevenueChartSkeleton() {
-    return (
-        <div className={`${shimmer} relative w-full overflow-hidden md:col-span-4`}>
-            <div className="mb-4 h-8 w-36 rounded-md bg-gray-100" />
-            <div className="rounded-xl bg-gray-100 p-4">
-                <div className="sm:grid-cols-13 mt-0 grid h-[410px] grid-cols-12 items-end gap-2 rounded-md bg-white p-4 md:gap-4" />
-                <div className="flex items-center pb-2 pt-6">
-                    <div className="h-5 w-5 rounded-full bg-gray-200" />
-                    <div className="ml-2 h-4 w-20 rounded-md bg-gray-200" />
-                </div>
-            </div>
-        </div>
     );
 }
 
@@ -59,7 +42,7 @@ export function InvoiceSkeleton() {
     );
 }
 
-export function LatestInvoicesSkeleton() {
+export function EventsSkeleton() {
     return (
         <div
             className={`${shimmer} relative flex w-full flex-col overflow-hidden md:col-span-4`}
@@ -86,17 +69,11 @@ export default function DashboardSkeleton() {
     return (
         <>
             <div
-                className={`${shimmer} relative mb-4 h-8 w-36 overflow-hidden rounded-md bg-gray-100`}
+                className={`${shimmer} relative mb-4 h-8 w-36 overflow-hidden rounded-md bg-gray-500`}
             />
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <CardSkeleton />
                 <CardSkeleton />
-                <CardSkeleton />
-                <CardSkeleton />
-            </div>
-            <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-4 lg:grid-cols-8">
-                <RevenueChartSkeleton />
-                <LatestInvoicesSkeleton />
             </div>
         </>
     );
@@ -213,6 +190,43 @@ export function InvoicesTableSkeleton() {
                     </table>
                 </div>
             </div>
+        </div>
+    );
+}
+
+
+export function EventCardSkeleton() {
+    return (
+        <div className={`${shimmer} relative overflow-hidden block border border-gray-200 p-6 rounded-lg shadow-md bg-gray-200`}>
+            {/* Event title */}
+            <div className="h-6 w-3/4 rounded-md bg-gray-500 mb-2" />
+
+            {/* Event description */}
+            <div className="space-y-2">
+                <div className="h-4 w-full rounded-md bg-gray-500" />
+                <div className="h-4 w-2/3 rounded-md bg-gray-500" />
+            </div>
+
+            {/* Divider line */}
+            <div className="mt-4 pt-4 border-t border-gray-500">
+                {/* Event ID section */}
+                <div className="flex items-center">
+                    <div className="h-4 w-16 rounded-md bg-gray-500" />
+                    <div className="h-5 w-24 rounded bg-gray-500 ml-2" />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export function EventsListSkeleton() {
+    return (
+        <div className="space-y-3 py-12 rounded-lg">
+            <EventCardSkeleton />
+            <EventCardSkeleton />
+            <EventCardSkeleton />
+            <EventCardSkeleton />
+            <EventCardSkeleton />
         </div>
     );
 }

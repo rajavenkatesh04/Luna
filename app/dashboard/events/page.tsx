@@ -2,13 +2,13 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { fetchLatestEvents } from '@/app/lib/data';
 import { auth } from '@/app/lib/firebase-admin';
-import { CardsSkeleton } from '@/app/ui/skeletons';
+import {EventsListSkeleton} from "@/app/ui/skeletons";
 
 async function EventsList() {
     const session = await auth.getSession();
     if (!session) return null;
 
-    // Note: fetchLatestEvents gets 5 events. For a full list, you'd remove the 'limit(5)' in data.ts
+    // fetchLatestEvents gets 5 events.
     const events = await fetchLatestEvents(session.uid);
 
     return (
@@ -46,7 +46,7 @@ export default function Page() {
                 </Link>
 
             </div>
-            <Suspense fallback={<CardsSkeleton />}>
+            <Suspense fallback={<EventsListSkeleton />}>
                 <EventsList />
             </Suspense>
         </main>

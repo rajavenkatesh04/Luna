@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { deleteEvent, DeleteEventState } from '@/app/lib/actions';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/solid';
+import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
 
 // A dedicated submit button for the delete action
 function DeleteButton() {
@@ -22,7 +23,12 @@ function DeleteButton() {
             disabled={pending}
             className="w-full px-4 py-2 bg-red-600 text-white  rounded-md hover:bg-red-700 disabled:bg-red-300"
         >
-            {pending ? 'Deleting...' : 'Delete this Event'}
+            {pending ? (
+                <>
+                    <LoadingSpinner className="mr-2" />
+                    <span>Deleting...</span>
+                </>
+            ) : (<span>Delete this Event</span>)}
         </button>
     );
 }

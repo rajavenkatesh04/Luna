@@ -13,7 +13,7 @@ export default async function Page() {
                 </Suspense>
             </div>
             <div className="mt-6 grid grid-cols-1 gap-6">
-                <Suspense fallback={<div className="rounded-xl bg-white p-4 shadow-sm h-64">Loading...</div>}>
+                <Suspense fallback={<div className="rounded-xl bg-gray-500 p-4 shadow-sm h-64">Loading...</div>}>
                     <LatestEvents />
                 </Suspense>
             </div>

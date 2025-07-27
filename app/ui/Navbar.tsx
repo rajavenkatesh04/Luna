@@ -24,10 +24,7 @@ export default function Navbar() {
                 {/*Desktop Navbar*/}
                 <div className={`hidden md:block`}>
                     <ul className={`flex gap-4 justify-between`}>
-                        <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}></li>
-                        <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}><Link href={`/join`}>Join</Link></li>
                         <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}><Link href={`/login`}>Login</Link></li>
-                        <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}><Link href={`/dashboard`}>Dashboard</Link></li>
                         <li><ToggleSwitch/></li>
                     </ul>
                 </div>
@@ -51,9 +48,7 @@ export default function Navbar() {
             {/*    Mobile Navbar*/}
             <div className={`overflow-hidden transition-max-height duration-500 ease-in-out ${isOpen ? 'max-h-60' : 'max-h-0'} md:hidden `}>
                 <ul className={`border-t space-y-4 p-5`}>
-                    <li><Link href={`/join`} onClick={() => setIsOpen(false)}>Join</Link></li>
                     <li><Link href={`/login`} onClick={() => setIsOpen(false)}>Log In</Link></li>
-                    <li><Link href={`/dashboard`} onClick={() => setIsOpen(false)}>Dashboard</Link></li>
                 </ul>
             </div>
         </nav>

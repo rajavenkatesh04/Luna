@@ -4,9 +4,10 @@
 import { z } from "zod";
 import { nanoid } from 'nanoid';
 import { signOut } from 'firebase/auth';
-import {auth, db} from '@/app/lib/firebase';
+import { auth, db } from '@/app/lib/firebase';
 import { auth as adminAuth } from '@/app/lib/firebase-admin';
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, Timestamp, getDocs, writeBatch, query, limit } from 'firebase/firestore';
+import { type AdminPermission, type Event } from '@/app/lib/definitions';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
@@ -46,7 +47,6 @@ const CreateEventSchema = z.object({
 });
 
 export async function createEvent(prevState: CreateEventState, formData: FormData): Promise<CreateEventState> {
-    // 1. Securely get the user's session on the server
     const session = await adminAuth.getSession();
     if (!session?.uid) {
         return { message: "Authentication error: Not logged in." };
@@ -68,7 +68,6 @@ export async function createEvent(prevState: CreateEventState, formData: FormDat
     const userId = session.uid;
 
     try {
-        // 2. Get the user's organization ID from their user document
         const userDocRef = doc(db, 'users', userId);
         const userDoc = await getDoc(userDocRef);
         if (!userDoc.exists()) {
@@ -76,16 +75,26 @@ export async function createEvent(prevState: CreateEventState, formData: FormDat
         }
         const organizationId = userDoc.data().organizationId;
 
-        // 3. Generate a unique ID and create the event document
         const eventId = nanoid(6).toUpperCase();
         const eventRef = doc(db, `organizations/${organizationId}/events`, eventId);
+
+
+        const ownerAsAdmin: AdminPermission = {
+            uid: userId,
+            permissions: {
+                canEditEvent: true,
+                canDeleteEvent: true,
+                canManageAdmins: true,
+                canSendAnnouncements: true
+            }
+        };
 
         await setDoc(eventRef, {
             id: eventId,
             title: title,
             description: description || '',
             ownerUid: userId,
-            admins: [userId], // The creator is the first admin
+            admins: [ownerAsAdmin], // Use the new object
             createdAt: Timestamp.now(),
         });
 
@@ -94,7 +103,6 @@ export async function createEvent(prevState: CreateEventState, formData: FormDat
         return { message: "Database error: Failed to create event." };
     }
 
-    // 4. On success, revalidate the events page and redirect the user there.
     revalidatePath('/dashboard/events');
     redirect('/dashboard/events');
 }
@@ -329,4 +337,130 @@ export async function deleteEvent(
     // 7. On success, revalidate the cache and redirect
     revalidatePath('/dashboard/events');
     redirect('/dashboard/events');
+}
+
+
+
+import { arrayUnion, arrayRemove } from 'firebase/firestore';
+
+
+
+// --- ADMIN MANAGEMENT ACTIONS ---
+
+export type GenerateInviteState = {
+    link?: string;
+    error?: string;
+}
+
+/**
+ * Generates a reusable invite link for an event with specific permissions.
+ */
+export async function generateInviteLink(eventId: string, permissions: AdminPermission['permissions']): Promise<GenerateInviteState> {
+    const session = await adminAuth.getSession();
+    if (!session?.uid) return { error: "Authentication required." };
+
+    try {
+        const userDocRef = doc(db, 'users', session.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (!userDoc.exists()) throw new Error("User profile not found.");
+        const organizationId = userDoc.data().organizationId;
+
+        const inviteId = nanoid(16);
+        const inviteRef = doc(db, 'eventInvites', inviteId);
+
+        await setDoc(inviteRef, {
+            id: inviteId,
+            eventId,
+            organizationId,
+            creatorUid: session.uid,
+            createdAt: Timestamp.now(),
+            defaultPermissions: permissions,
+        });
+
+        const inviteLink = `${process.env.NEXT_PUBLIC_BASE_URL}/invite/${inviteId}`;
+        return { link: inviteLink };
+    } catch (error) {
+        console.error("Invite Link Generation Error:", error);
+        return { error: "Failed to create invite link." };
+    }
+}
+
+/**
+ * Accepts an event invitation, adding the user to the event's admin list.
+ */
+export async function acceptInvite(inviteId: string) {
+    const session = await adminAuth.getSession();
+    if (!session?.uid) return redirect('/login');
+
+    const inviteRef = doc(db, 'eventInvites', inviteId);
+    const inviteDoc = await getDoc(inviteRef);
+
+    if (!inviteDoc.exists()) {
+        return redirect('/dashboard?error=invalid_invite');
+    }
+
+    const { eventId, organizationId, defaultPermissions } = inviteDoc.data();
+    const eventRef = doc(db, `organizations/${organizationId}/events`, eventId);
+    const eventDoc = await getDoc(eventRef);
+
+    if (!eventDoc.exists()) {
+        return redirect('/dashboard?error=event_not_found');
+    }
+
+    const eventData = eventDoc.data() as Event;
+    const isAlreadyAdmin = eventData.admins.some(admin => admin.uid === session.uid);
+
+    if (isAlreadyAdmin) {
+        return redirect(`/dashboard/events/${eventId}?notice=already_admin`);
+    }
+
+    const newAdmin: AdminPermission = {
+        uid: session.uid,
+        permissions: defaultPermissions
+    };
+
+    await updateDoc(eventRef, {
+        admins: arrayUnion(newAdmin)
+    });
+
+    revalidatePath(`/dashboard/events/${eventId}`);
+    redirect(`/dashboard/events/${eventId}`);
+}
+
+/**
+ * Removes an admin from an event.
+ */
+export async function removeAdmin(eventId: string, targetUid: string) {
+    const session = await adminAuth.getSession();
+    if (!session?.uid) throw new Error("Authentication required.");
+
+    try {
+        const userDocRef = doc(db, 'users', session.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (!userDoc.exists()) throw new Error("User profile not found.");
+        const organizationId = userDoc.data().organizationId;
+
+        const eventRef = doc(db, `organizations/${organizationId}/events`, eventId);
+        const eventDoc = await getDoc(eventRef);
+
+        if (!eventDoc.exists()) throw new Error("Event not found.");
+
+        const eventData = eventDoc.data() as Event;
+        if (targetUid === eventData.ownerUid) {
+            throw new Error("Cannot remove the event owner.");
+        }
+
+        const adminToRemove = eventData.admins.find(admin => admin.uid === targetUid);
+        if (!adminToRemove) throw new Error("Admin not found in the list.");
+
+        await updateDoc(eventRef, {
+            admins: arrayRemove(adminToRemove)
+        });
+
+        revalidatePath(`/dashboard/events/${eventId}`);
+        return { success: true };
+    } catch (error) {
+        console.error("Remove Admin Error:", error);
+        return { success: false, error: (error as Error).message };
+    }
 }

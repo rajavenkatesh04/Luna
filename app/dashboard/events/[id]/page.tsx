@@ -5,13 +5,14 @@ import { fetchEventById, fetchUserProfile, fetchUsersByUid } from '@/app/lib/dat
 import { notFound } from 'next/navigation';
 import Breadcrumbs from '@/app/ui/dashboard/events/breadcrumbs';
 import Link from 'next/link';
-import { EyeIcon, PencilIcon, QrCodeIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, PencilIcon } from '@heroicons/react/24/outline';
 import AnnouncementsTab from '@/app/ui/dashboard/events/announcements-tab';
 import AdminsTab from '@/app/ui/dashboard/events/admins-tab';
 import SettingsTab from '@/app/ui/dashboard/events/settings-tab';
 import clsx from 'clsx';
+import QrCodeDisplay from "@/app/ui/dashboard/events/qr-code-display";
 
-// Correct the props type to reflect that they are Promises
+
 type PageProps = {
     params: Promise<{ id: string }>;
     searchParams?: Promise<{ tab?: string }>;
@@ -60,17 +61,14 @@ export default async function Page({ params, searchParams }: PageProps) {
             {/* Header Section */}
             <div className="mb-8">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <h1 className="text-3xl font-bold truncate">{event.title}</h1>
+                    <h1 className="text-3xl  truncate">{event.title}</h1>
                     <p className="md:hidden mt-2 text-gray-600">{event.description}</p>
                     <div className="flex gap-2">
                         <Link href={`/e/${event.id}`} target="_blank" className="flex items-center gap-2 px-4 py-2 text-sm  border rounded-md shadow-sm hover:bg-gray-500">
                             <EyeIcon className="w-4 h-4" />
                             View Public Page
                         </Link>
-                        <button className="flex items-center gap-2 px-4 py-2 text-sm border rounded-md shadow-sm hover:bg-gray-500">
-                            <QrCodeIcon className="w-4 h-4" />
-                            Get QR Code
-                        </button>
+                        <QrCodeDisplay eventId={event.id} />
                         <Link href={`/dashboard/events/${event.docId}/edit`} className="flex items-center gap-2 px-4 py-2 text-sm  border border-blue-500 rounded-md shadow-sm hover:bg-blue-700">
                             <PencilIcon className="w-4 h-4" />
                             Edit

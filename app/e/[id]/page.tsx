@@ -6,6 +6,7 @@ import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { Announcement, Event } from '@/app/lib/definitions';
 import { UserCircleIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import Navbar from "@/app/ui/Navbar";
+import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
 
 // This is a helper function to fetch the initial event data.
 // In a real app, you might use a library like SWR or React Query for this.
@@ -64,7 +65,10 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
     }, [params]);
 
     if (isLoading) {
-        return <div className="flex items-center justify-center min-h-screen">Loading Event...</div>;
+        return <div className="flex items-center justify-center min-h-screen">
+            <LoadingSpinner className="mr-2" />
+            Loading Event...
+        </div>;
     }
 
     if (error) {
@@ -101,8 +105,10 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                             </div>
                         ))
                     ) : (
-                        <div className="text-center text-gray-500 py-12">
-                            <p>No announcements yet. Stay tuned for updates!</p>
+                        <div className="text-center  py-12">
+                            <p>No announcements yet.
+                                <br />
+                                Stay tuned for updates!</p>
                         </div>
                     )}
                 </div>

@@ -2,8 +2,9 @@ export interface User {
     uid: string;
     email: string;
     displayName: string;
+    photoURL?: string; // For profile pictures
     organizationId: string;
-    role: 'user' | 'admin' | 'owner' | 'master' ;
+    role: 'user' | 'admin' | 'owner' | 'master';
 }
 
 export interface Organisation {
@@ -15,16 +16,15 @@ export interface Organisation {
 
 
 // This is the blueprint for a single Event document in Firestore.
-export type Event = {
+export interface Event {
     docId: string;
     id: string;
     title: string;
     description: string;
     ownerUid: string;
-    admins: string[];
-    // When we pass this from a Server to a Client Component, it must be a string.
+    admins: AdminPermission[]; // Updated structure
     createdAt: string | { seconds: number; nanoseconds: number; };
-};
+}
 
 
 export type Announcement = {
@@ -49,6 +49,16 @@ export interface Poll {
     eventId: string;
     creatorUid: string;
     timeStamp: Date;
+}
+
+export interface AdminPermission {
+    uid: string;
+    permissions: {
+        canEditEvent: boolean;
+        canDeleteEvent: boolean;
+        canManageAdmins: boolean;
+        canSendAnnouncements: boolean;
+    };
 }
 
 
