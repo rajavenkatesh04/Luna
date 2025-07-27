@@ -4,10 +4,11 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const eventId = params.id;
+        const resolvedParams = await params;
+        const eventId = resolvedParams.id;
 
         if (!eventId) {
             return NextResponse.json({ error: 'Event ID is required' }, { status: 400 });

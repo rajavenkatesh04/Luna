@@ -7,12 +7,28 @@ import { db } from '@/app/lib/firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { Announcement } from '@/app/lib/definitions';
 import { UserCircleIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
 
 function SubmitButton() {
     const { pending } = useFormStatus();
+
     return (
-        <button type="submit" disabled={pending} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300">
-            {pending ? 'Sending...' : 'Send Announcement'}
+        <button
+            type="submit"
+            disabled={pending}
+            className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
+            aria-disabled={pending}
+        >
+            {pending ? (
+                // When pending, show the spinner and adjust the text
+                <>
+                    <LoadingSpinner className="mr-2" />
+                    <span>Sending...</span>
+                </>
+            ) : (
+                // Default button text
+                <span>Send Announcement</span>
+            )}
         </button>
     );
 }
