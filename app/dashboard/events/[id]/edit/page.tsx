@@ -9,28 +9,32 @@ export const metadata: Metadata = {
     title: 'Edit Event',
 };
 
-export default async function Page({ params }: { params: { id: string } }) {
+// The 'params' prop is now a Promise, so we need to await it.
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+
+    // Await the params Promise to get the resolved value
+    const { id: eventId } = await params;
+
     const session = await auth.getSession();
     if (!session) {
         notFound();
     }
 
-    const eventId = params.id;
+    // Fetch the event data just once using the resolved eventId
     const event = await fetchEventById(session.uid, eventId);
 
     if (!event) {
         notFound();
     }
 
-    const eventData = await fetchEventById(session.uid, eventId);
-
-    if (!eventData) {
-        notFound();
-    }
-
+    // Convert the Firestore Timestamp to a string so it can be passed to a Client Component
     const plainEvent = {
-        ...eventData,
-        createdAt: new Date(eventData.createdAt.seconds * 1000).toISOString(),
+        ...event,
+        // Ensure createdAt is a string. If it's already a string, this won't break it.
+        // If it's a Firestore Timestamp object, it will be converted.
+        createdAt: typeof event.createdAt === 'string'
+            ? event.createdAt
+            : new Date(event.createdAt.seconds * 1000).toISOString(),
     };
 
     return (
