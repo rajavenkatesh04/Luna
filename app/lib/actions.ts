@@ -226,15 +226,6 @@ export async function updateEvent(prevState: UpdateEventState, formData: FormDat
     redirect(`/dashboard/events/${eventId}`);
 }
 
-
-
-// --- Invite creation ---
-export async function createInvite(eventId : string) {
-    return console.log("Invite created");
-}
-
-
-
 /**
  * Recursively deletes all documents in a collection and its sub-collections.
  * Uses batched writes for efficiency.
