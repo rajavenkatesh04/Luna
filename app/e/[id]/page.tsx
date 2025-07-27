@@ -6,6 +6,7 @@ import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { Announcement, Event } from '@/app/lib/definitions';
 import { notFound } from 'next/navigation';
 import { UserCircleIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import Navbar from "@/app/ui/Navbar";
 
 // This is a helper function to fetch the initial event data.
 // In a real app, you might use a library like SWR or React Query for this.
@@ -72,6 +73,7 @@ export default function PublicEventPage({ params }: { params: { id: string } }) 
 
     return (
         <main className="min-h-screen">
+            <Navbar />
             <div className="max-w-2xl mx-auto p-4 md:p-8">
                 <header className="text-center mb-8">
                     <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-teal-400">{event?.title}</h1>

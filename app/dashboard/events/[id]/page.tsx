@@ -35,7 +35,7 @@ export default async function Page({
     }
 
     // Determine the active tab, defaulting to 'announcements'
-    const activeTab =await searchParams?.tab || 'announcements';
+    const activeTab = await searchParams?.tab || 'announcements';
 
     // Fetch the full profiles for the admins of this event
     const adminUsers = await fetchUsersByUid(event.admins);
