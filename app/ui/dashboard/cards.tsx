@@ -28,6 +28,7 @@ export default async function CardWrapper() {
 
     const { totalEvents, totalAdmins } = await fetchCardData(session.uid);
 
+
     return (
         <>
             <Card title="Total Events" type="events" value={totalEvents} />

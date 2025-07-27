@@ -23,7 +23,7 @@ export default async function LatestEvents() {
                         {latestEvents.map((event, i) => (
                             <div key={event.docId} className="flex flex-row items-center justify-between py-4">
                                 <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-semibold md:text-base">{event.title}</p>
+                                    <p className="truncate text-sm  md:text-base">{event.title}</p>
                                     <p className="hidden text-sm sm:block truncate">{event.description || 'No description'}</p>
                                 </div>
                                 <Link

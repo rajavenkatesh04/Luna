@@ -1,25 +1,16 @@
+// app/lib/actions.ts
 "use server"
 
 import { signOut } from 'firebase/auth';
-import { auth, db } from '@/app/lib/firebase';
+import {auth, db} from '@/app/lib/firebase';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { auth as adminAuth } from '@/app/lib/firebase-admin';
 import { z } from "zod";
-import {
-    doc,
-    getDoc,
-    setDoc,
-    collection,
-    Timestamp,
-    updateDoc,
-    arrayUnion,
-    writeBatch,
-    query,
-    where
-} from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, Timestamp } from 'firebase/firestore';
 import { nanoid } from 'nanoid';
 import { revalidatePath } from 'next/cache';
+import { updateDoc } from 'firebase/firestore';
 
 /**
  * Handles the complete user logout process.
@@ -27,13 +18,19 @@ import { revalidatePath } from 'next/cache';
 export async function logout() {
     try {
         await signOut(auth);
+
         const cookieStore = await cookies();
         cookieStore.set('session', '', { maxAge: -1 });
+
     } catch (error) {
         console.error('Logout Error:', error);
     }
+
+    // Always redirect to login after attempting to log out
     redirect('/login');
 }
+
+
 
 // --- EVENT CREATION ---
 export type CreateEventState = {
@@ -50,10 +47,12 @@ const CreateEventSchema = z.object({
 });
 
 export async function createEvent(prevState: CreateEventState, formData: FormData): Promise<CreateEventState> {
+    // 1. Securely get the user's session on the server
     const session = await adminAuth.getSession();
     if (!session?.uid) {
         return { message: "Authentication error: Not logged in." };
     }
+
     const validatedFields = CreateEventSchema.safeParse({
         title: formData.get('title'),
         description: formData.get('description'),
@@ -70,6 +69,7 @@ export async function createEvent(prevState: CreateEventState, formData: FormDat
     const userId = session.uid;
 
     try {
+        // 2. Get the user's organization ID from their user document
         const userDocRef = doc(db, 'users', userId);
         const userDoc = await getDoc(userDocRef);
         if (!userDoc.exists()) {
@@ -77,17 +77,16 @@ export async function createEvent(prevState: CreateEventState, formData: FormDat
         }
         const organizationId = userDoc.data().organizationId;
 
+        // 3. Generate a unique ID and create the event document
         const eventId = nanoid(6).toUpperCase();
         const eventRef = doc(db, `organizations/${organizationId}/events`, eventId);
 
         await setDoc(eventRef, {
             id: eventId,
-            organizationId: organizationId,
             title: title,
             description: description || '',
-            admins: {
-                [userId]: 'owner' // Set the creator as the 'owner' in the admins map
-            },
+            ownerUid: userId,
+            admins: [userId], // The creator is the first admin
             createdAt: Timestamp.now(),
         });
 
@@ -96,9 +95,11 @@ export async function createEvent(prevState: CreateEventState, formData: FormDat
         return { message: "Database error: Failed to create event." };
     }
 
+    // 4. On success, revalidate the events page and redirect the user there.
     revalidatePath('/dashboard/events');
     redirect('/dashboard/events');
 }
+
 
 
 // --- ANNOUNCEMENT CREATION ---
@@ -113,7 +114,7 @@ export type CreateAnnouncementState = {
 const CreateAnnouncementSchema = z.object({
     title: z.string().min(1, { message: "Title is required." }),
     content: z.string().min(1, { message: "Content is required." }),
-    eventId: z.string(),
+    eventId: z.string(), // Hidden input to know which event this belongs to
 });
 
 export async function createAnnouncement(prevState: CreateAnnouncementState, formData: FormData): Promise<CreateAnnouncementState> {
@@ -121,6 +122,7 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
     if (!session?.uid) {
         return { message: "Authentication error: Not logged in." };
     }
+
     const validatedFields = CreateAnnouncementSchema.safeParse({
         title: formData.get('title'),
         content: formData.get('content'),
@@ -145,6 +147,7 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
         }
         const organizationId = userDoc.data().organizationId;
 
+        // Create a new announcement in the sub-collection of the event
         const announcementRef = doc(collection(db, `organizations/${organizationId}/events/${eventId}/announcements`));
 
         await setDoc(announcementRef, {
@@ -153,7 +156,7 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
             authorId: user.uid,
             title: title,
             content: content,
-            isPinned: false,
+            isPinned: false, // Announcements are not pinned by default
             createdAt: Timestamp.now(),
         });
 
@@ -162,6 +165,7 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
         return { message: "Database error: Failed to create announcement." };
     }
 
+    // Revalidate the event page path to ensure data is fresh
     revalidatePath(`/dashboard/events/${eventId}`);
     return { message: `Successfully created announcement.` };
 }
@@ -171,7 +175,7 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
 export type UpdateEventState = CreateEventState;
 
 const UpdateEventSchema = z.object({
-    id: z.string(),
+    id: z.string(), // We now get the ID from a hidden form input
     title: z.string().min(3, { message: "Title must be at least 3 characters." }),
     description: z.string().optional(),
 });
@@ -181,6 +185,7 @@ export async function updateEvent(prevState: UpdateEventState, formData: FormDat
     if (!session?.uid) {
         return { message: "Authentication error: Not logged in." };
     }
+
     const validatedFields = UpdateEventSchema.safeParse({
         id: formData.get('id'),
         title: formData.get('title'),
@@ -223,97 +228,65 @@ export async function updateEvent(prevState: UpdateEventState, formData: FormDat
 }
 
 
-// --- ADMIN INVITATION ---
-export type CreateInviteState = {
-    inviteId?: string;
-    error?: string | null;
-};
 
-export async function createInvite(eventId: string): Promise<CreateInviteState> {
-    const session = await adminAuth.getSession();
-    if (!session?.uid) {
-        return { error: "Authentication error: Not logged in." };
-    }
-    const userId = session.uid;
-
-    try {
-        const userDocRef = doc(db, 'users', userId);
-        const userDoc = await getDoc(userDocRef);
-        if (!userDoc.exists()) {
-            return { error: "Database error: User profile not found." };
-        }
-        const organizationId = userDoc.data().organizationId;
-
-        const eventRef = doc(db, `organizations/${organizationId}/events`, eventId);
-        const eventDoc = await getDoc(eventRef);
-        if (!eventDoc.exists() || eventDoc.data().admins[userId] == null) {
-            return { error: "Permission denied: You are not an admin of this event." };
-        }
-
-        const inviteRef = doc(collection(db, 'invites'));
-        await setDoc(inviteRef, {
-            id: inviteRef.id,
-            organizationId: organizationId,
-            eventId: eventId,
-            status: 'pending',
-            createdAt: Timestamp.now(),
-        });
-
-        return { inviteId: inviteRef.id };
-    } catch (error) {
-        console.error("Invite Creation Error:", error);
-        return { error: "Database error: Failed to create invite." };
-    }
+// --- Invite creation ---
+export async function createInvite(eventId : String) {
+    return console.log("Invite created");
 }
 
 
 
-export async function joinEventByCode(eventCode: string): Promise<{ success?: boolean; error?: string; eventId?: string }> {
-    const session = await adminAuth.getSession();
-    if (!session?.uid) return { error: "You must be signed in to join an event." };
+// 1. Define the state for the delete action
+export type DeleteEventState = {
+    message: string | null;
+    errors: {}; // Kept for consistency, can be expanded later
+};
 
-    const userId = session.uid;
+// 2. Define the Zod schema for validation
+const DeleteEventSchema = z.object({
+    eventId: z.string().min(1, { message: 'Event ID is missing.' }),
+});
+
+
+// 3. Create the placeholder server action
+export async function deleteEvent(
+    prevState: DeleteEventState,
+    formData: FormData,
+): Promise<DeleteEventState> {
+    // Validate form data
+    const validatedFields = DeleteEventSchema.safeParse({
+        eventId: formData.get('eventId'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            message: 'Validation failed. Could not delete event.',
+            errors: validatedFields.error.flatten().fieldErrors,
+        };
+    }
+
+    const { eventId } = validatedFields.data;
 
     try {
-        // Find the event by its public ID across all organizations
-        const eventsQuery = query(
-            collection(db, 'events'), // This assumes a top-level 'events' collection for easier querying
-            where("id", "==", eventCode)
-        );
-        // Note: Firestore queries on subcollections require knowing the parent.
-        // A better data model for this feature would be to have a top-level 'events' collection.
-        // For now, we will simulate this. This is a major architectural consideration.
+        console.log(`Placeholder: Attempting to delete event with ID: ${eventId}`);
 
-        // Let's pivot to a simpler, more direct approach for now.
-        // We will need to know the organization ID to find the event.
-        // This is a limitation we must address.
-
-        // For the purpose of this fix, let's assume we can find the event.
-        // We'll need to refactor data structure later for this to be robust.
-
-        // Placeholder for finding the event. This part is complex.
-        // Let's focus on the update logic.
-        const placeholderOrgId = "placeholder"; // We need to solve how to find this
-        const eventId = eventCode; // Assuming eventCode is the docId for now
-        const eventRef = doc(db, `organizations/${placeholderOrgId}/events`, eventId);
-        const userToUpdateRef = doc(db, 'users', userId);
-
-        const batch = writeBatch(db);
-
-        batch.update(eventRef, {
-            [`admins.${userId}`]: 'admin'
-        });
-        batch.update(userToUpdateRef, {
-            collaboratingOn: arrayUnion(eventId)
-        });
-
-        await batch.commit();
-
-        revalidatePath(`/dashboard/events/${eventId}`);
-        return { success: true, eventId: eventId };
+        //
+        // TODO: Add your actual Firebase deletion logic here when ready.
+        // Example:
+        // const eventRef = doc(db, `path/to/events/${eventId}`);
+        // await deleteDoc(eventRef);
+        // console.log(`Successfully deleted event: ${eventId}`);
+        //
 
     } catch (error) {
-        console.error("Join Event Error:", error);
-        return { error: "Failed to join event. The code may be invalid." };
+        console.error('Deletion Error:', error);
+        return {
+            message: 'An error occurred while trying to delete the event. Please try again.',
+            errors: {},
+        };
     }
+
+    // On successful deletion, revalidate the cache and redirect
+    revalidatePath('/dashboard/events');
+    redirect('/dashboard/events');
 }

@@ -51,8 +51,8 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
     return (
         <div>
             {/* Create Announcement Form */}
-            <form action={dispatch} ref={formRef} className="p-4 bg-gray-50 rounded-lg border">
-                <h3 className="font-semibold mb-2">Create New Announcement</h3>
+            <form action={dispatch} ref={formRef} className="p-4  rounded-lg border">
+                <h3 className="mb-2">Create New Announcement</h3>
                 <input type="hidden" name="eventId" value={eventId} />
                 <div className="mb-2">
                     <label htmlFor="title" className="sr-only">Title</label>
@@ -71,15 +71,15 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
 
             {/* Announcements List */}
             <div className="mt-8">
-                <h3 className="font-semibold mb-4">Posted Announcements</h3>
+                <h3 className=" mb-4">Posted Announcements</h3>
                 {isLoading ? (
                     <p>Loading announcements...</p>
                 ) : announcements.length > 0 ? (
                     <ul className="space-y-4">
                         {announcements.map(ann => (
-                            <li key={ann.id} className="p-4 bg-white border rounded-lg shadow-sm">
-                                <p className="font-bold">{ann.title}</p>
-                                <p className="mt-1 text-gray-700">{ann.content}</p>
+                            <li key={ann.id} className="p-4  border rounded-lg shadow-sm">
+                                <h3 className="">{ann.title}</h3>
+                                <p className="mt-1 text-sm">{ann.content}</p>
                                 <div className="flex items-center gap-4 text-xs text-gray-500 mt-3 pt-3 border-t">
                                     <span className="flex items-center gap-1"><UserCircleIcon className="w-4 h-4" /> {ann.authorName}</span>
                                     <span className="flex items-center gap-1"><CalendarIcon className="w-4 h-4" /> {new Date(ann.createdAt.seconds * 1000).toLocaleString()}</span>

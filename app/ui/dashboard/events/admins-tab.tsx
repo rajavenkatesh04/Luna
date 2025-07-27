@@ -51,6 +51,8 @@ function InviteButton({ eventId }: { eventId: string }) {
 }
 
 
+
+
 export default function AdminsTab({ eventId, admins }: { eventId: string, admins: User[] }) {
     return (
         <div>

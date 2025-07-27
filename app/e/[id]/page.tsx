@@ -71,19 +71,19 @@ export default function PublicEventPage({ params }: { params: { id: string } }) 
     }
 
     return (
-        <main className="bg-gray-50 min-h-screen">
+        <main className="min-h-screen">
             <div className="max-w-2xl mx-auto p-4 md:p-8">
                 <header className="text-center mb-8">
-                    <h1 className="text-4xl font-bold">{event?.title}</h1>
+                    <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-teal-400">{event?.title}</h1>
                     <p className="mt-2 text-lg text-gray-600">{event?.description}</p>
                 </header>
 
                 <div className="space-y-4">
                     {announcements.length > 0 ? (
                         announcements.map(ann => (
-                            <div key={ann.id} className="p-5 bg-white border rounded-lg shadow-sm animate-fade-in">
-                                <p className="font-bold text-lg">{ann.title}</p>
-                                <p className="mt-1 text-gray-800 whitespace-pre-wrap">{ann.content}</p>
+                            <div key={ann.id} className="p-5  border rounded-lg shadow-sm animate-fade-in">
+                                <p className=" tracking-wide text-lg  ">{ann.title}</p>
+                                <p className="mt-1 text-gray-500 whitespace-pre-wrap">{ann.content}</p>
                                 <div className="flex items-center gap-4 text-xs text-gray-500 mt-4 pt-3 border-t">
                                     <span className="flex items-center gap-1.5"><UserCircleIcon className="w-4 h-4" /> {ann.authorName}</span>
                                     <span className="flex items-center gap-1.5"><CalendarIcon className="w-4 h-4" /> {new Date(ann.createdAt.seconds * 1000).toLocaleString()}</span>
