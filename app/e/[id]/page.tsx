@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { db } from '@/app/lib/firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { Announcement, Event } from '@/app/lib/definitions';
-import { notFound } from 'next/navigation';
 import { UserCircleIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import Navbar from "@/app/ui/Navbar";
 
@@ -17,43 +16,52 @@ async function getInitialEventData(eventCode: string) {
     return response.json();
 }
 
-export default function PublicEventPage({ params }: { params: { id: string } }) {
+export default function PublicEventPage({ params }: { params: Promise<{ id: string }> }) {
     const [event, setEvent] = useState<Event | null>(null);
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [eventId, setEventId] = useState<string | null>(null);
 
     useEffect(() => {
-        // Fetch the initial event details
-        getInitialEventData(params.id)
-            .then(data => {
-                if (data && data.eventData && data.eventPath) {
-                    setEvent(data.eventData);
+        // First resolve the params
+        params.then(resolvedParams => {
+            setEventId(resolvedParams.id);
 
-                    // --- THE LIVE FEED ---
-                    // Once we have the event path, we set up the real-time listener
-                    const announcementsQuery = query(
-                        collection(db, `${data.eventPath}/announcements`),
-                        orderBy('createdAt', 'desc')
-                    );
+            // Fetch the initial event details
+            return getInitialEventData(resolvedParams.id);
+        }).then(data => {
+            if (data && data.eventData && data.eventPath) {
+                setEvent(data.eventData);
 
-                    const unsubscribe = onSnapshot(announcementsQuery, (querySnapshot) => {
-                        const announcementsData = querySnapshot.docs.map(doc => doc.data() as Announcement);
-                        setAnnouncements(announcementsData);
-                        setIsLoading(false);
-                    }, (err) => {
-                        console.error("Snapshot error:", err);
-                        setError("Could not load announcements.");
-                        setIsLoading(false);
-                    });
+                // --- THE LIVE FEED ---
+                // Once we have the event path, we set up the real-time listener
+                const announcementsQuery = query(
+                    collection(db, `${data.eventPath}/announcements`),
+                    orderBy('createdAt', 'desc')
+                );
 
-                    return () => unsubscribe(); // Cleanup listener
-                } else {
-                    setError("Event not found.");
+                const unsubscribe = onSnapshot(announcementsQuery, (querySnapshot) => {
+                    const announcementsData = querySnapshot.docs.map(doc => doc.data() as Announcement);
+                    setAnnouncements(announcementsData);
                     setIsLoading(false);
-                }
-            });
-    }, [params.id]);
+                }, (err) => {
+                    console.error("Snapshot error:", err);
+                    setError("Could not load announcements.");
+                    setIsLoading(false);
+                });
+
+                return () => unsubscribe(); // Cleanup listener
+            } else {
+                setError("Event not found.");
+                setIsLoading(false);
+            }
+        }).catch(err => {
+            console.error("Error loading event:", err);
+            setError("Could not load event.");
+            setIsLoading(false);
+        });
+    }, [params]);
 
     if (isLoading) {
         return <div className="flex items-center justify-center min-h-screen">Loading Event...</div>;
