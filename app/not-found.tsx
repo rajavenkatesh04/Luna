@@ -24,7 +24,7 @@ export default function NotFound() {
                         Lost in Space?
                     </h2>
                     <p className="text-lg text-slate-300">
-                        Looks like you've ventured into uncharted territory. Let's get you back on track.
+                        Looks like you&apos;ve ventured into uncharted territory. Let&apos;s get you back on track.
                     </p>
                 </div>
 

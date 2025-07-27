@@ -32,11 +32,11 @@ export default function NotFound() {
                         Event Not Found
                     </h1>
                     <p className="text-lg text-gray-500">
-                        Looks like the event you're looking for is a ghost. 👻
+                        Looks like the event you&apos;re looking for is a ghost. 👻
                     </p>
                     {missingPath && (
                         <p className="text-sm text-gray-500 bg-gray-100 rounded-md p-2 inline-block">
-                            We couldn't find anything at: <strong>{missingPath}</strong>
+                            We couldn&apos;t find anything at: <strong>{missingPath}</strong>
                         </p>
                     )}
                 </div>
