@@ -1,5 +1,7 @@
+// app/dashboard/events/[id]/page.tsx
+
 import { auth } from '@/app/lib/firebase-admin';
-import { fetchEventById, fetchUserProfile } from '@/app/lib/data';
+import { fetchEventById, fetchUserProfile, fetchUsersByUid } from '@/app/lib/data';
 import { notFound } from 'next/navigation';
 import Breadcrumbs from '@/app/ui/dashboard/events/breadcrumbs';
 import Link from 'next/link';
@@ -8,23 +10,25 @@ import AnnouncementsTab from '@/app/ui/dashboard/events/announcements-tab';
 import AdminsTab from '@/app/ui/dashboard/events/admins-tab';
 import SettingsTab from '@/app/ui/dashboard/events/settings-tab';
 import clsx from 'clsx';
-import { fetchUsersByUid } from '@/app/lib/data';
 
+// Correct the props type to reflect that they are Promises
+type PageProps = {
+    params: Promise<{ id: string }>;
+    searchParams?: Promise<{ tab?: string }>;
+};
 
-export default async function Page({
-                                       params,
-                                       searchParams
-                                   }: {
-    params: { id: string };
-     searchParams?: { tab?: string };
-}) {
+export default async function Page({ params, searchParams }: PageProps) {
 
-    const eventId = params.id;
+    // Await the props to get their resolved values
+    const { id: eventId } = await params;
+    const resolvedSearchParams = await searchParams;
+
     const session = await auth.getSession();
     if (!session) {
         notFound();
     }
 
+    // Fetch primary data
     const [event, userProfile] = await Promise.all([
         fetchEventById(session.uid, eventId),
         fetchUserProfile(session.uid)
@@ -34,8 +38,8 @@ export default async function Page({
         notFound();
     }
 
-    // Determine the active tab, defaulting to 'announcements'
-    const activeTab = await searchParams?.tab || 'announcements';
+    // Determine the active tab from the resolved searchParams
+    const activeTab = resolvedSearchParams?.tab || 'announcements';
 
     // Fetch the full profiles for the admins of this event
     const adminUsers = await fetchUsersByUid(event.admins);
@@ -54,7 +58,6 @@ export default async function Page({
             />
 
             {/* Header Section */}
-
             <div className="mb-8">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <h1 className="text-3xl font-bold truncate">{event.title}</h1>
@@ -81,7 +84,6 @@ export default async function Page({
             <div className="w-full">
                 <div className="border-b border-gray-200">
                     <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-                        {/* Use Link component and conditional classes */}
                         <Link
                             href={`/dashboard/events/${event.docId}?tab=announcements`}
                             className={clsx(
@@ -124,7 +126,8 @@ export default async function Page({
                 {/* Conditionally render Tab Content */}
                 <div className="py-6">
                     {activeTab === 'announcements' && <AnnouncementsTab eventId={event.docId} orgId={userProfile.organizationId} />}
-                    {activeTab === 'admins' && <AdminsTab eventId={event.docId} />}
+                    {/* Corrected: Pass the adminUsers prop to the AdminsTab */}
+                    {activeTab === 'admins' && <AdminsTab eventId={event.docId} admins={adminUsers} />}
                     {activeTab === 'settings' && <SettingsTab eventId={event.docId} />}
                 </div>
             </div>
