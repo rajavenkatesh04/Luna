@@ -1,17 +1,18 @@
+// app/ui/dashboard/events/announcements-tab.tsx
 'use client';
 import { useActionState } from "react";
 import { useEffect, useState, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
-import { createAnnouncement, CreateAnnouncementState } from '@/app/lib/actions';
+import { createAnnouncement, CreateAnnouncementState, deleteAnnouncement } from '@/app/lib/actions';
 import { db } from '@/app/lib/firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { Announcement } from '@/app/lib/definitions';
-import { UserCircleIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { UserCircleIcon, CalendarIcon, TrashIcon  } from '@heroicons/react/24/outline';
 import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
 
+// No changes to SubmitButton
 function SubmitButton() {
     const { pending } = useFormStatus();
-
     return (
         <button
             type="submit"
@@ -20,15 +21,34 @@ function SubmitButton() {
             aria-disabled={pending}
         >
             {pending ? (
-                // When pending, show the spinner and adjust the text
                 <>
                     <LoadingSpinner className="mr-2" />
                     <span>Sending...</span>
                 </>
             ) : (
-                // Default button text
                 <span>Send Announcement</span>
             )}
+        </button>
+    );
+}
+
+// No changes to DeleteButton
+function DeleteButton() {
+    const { pending } = useFormStatus();
+    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+        if (!window.confirm('Are you sure you want to delete this announcement?')) {
+            event.preventDefault();
+        }
+    };
+    return (
+        <button
+            type="submit"
+            onClick={handleClick}
+            disabled={pending}
+            aria-disabled={pending}
+            className="p-1 text-gray-400 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+            {pending ? <LoadingSpinner className="h-4 w-4" /> : <TrashIcon className="h-5 w-5" />}
         </button>
     );
 }
@@ -37,27 +57,23 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const formRef = useRef<HTMLFormElement>(null);
-
     const initialState: CreateAnnouncementState = { message: null, errors: {} };
     const [state, dispatch] = useActionState(createAnnouncement, initialState);
 
-    // Real-time listener for announcements
+    // No changes to useEffect hooks
     useEffect(() => {
         const q = query(
             collection(db, `organizations/${orgId}/events/${eventId}/announcements`),
             orderBy('createdAt', 'desc')
         );
-
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const announcementsData = querySnapshot.docs.map(doc => doc.data() as Announcement);
             setAnnouncements(announcementsData);
             setIsLoading(false);
         });
-
-        return () => unsubscribe(); // Cleanup listener on component unmount
+        return () => unsubscribe();
     }, [eventId, orgId]);
 
-    // Reset form on successful submission
     useEffect(() => {
         if (state.message?.startsWith('Successfully')) {
             formRef.current?.reset();
@@ -66,8 +82,8 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
 
     return (
         <div>
-            {/* Create Announcement Form */}
-            <form action={dispatch} ref={formRef} className="p-4  rounded-lg border">
+            {/* Create Announcement Form (remains the same) */}
+            <form action={dispatch} ref={formRef} className="p-4 rounded-lg border">
                 <h3 className="mb-2">Create New Announcement</h3>
                 <input type="hidden" name="eventId" value={eventId} />
                 <div className="mb-2">
@@ -85,6 +101,8 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
                 </div>
             </form>
 
+            {/* <<< THE SINGLE DELETE FORM SHOULD BE REMOVED FROM HERE >>> */}
+
             {/* Announcements List */}
             <div className="mt-8">
                 <h3 className=" mb-4">Posted Announcements</h3>
@@ -92,10 +110,25 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
                     <p>Loading announcements...</p>
                 ) : announcements.length > 0 ? (
                     <ul className="space-y-4">
-                        {announcements.map(ann => (
-                            <li key={ann.id} className="p-4  border rounded-lg shadow-sm">
-                                <h3 className="">{ann.title}</h3>
-                                <p className="mt-1 text-sm">{ann.content}</p>
+                        {announcements.map((ann) => (
+                            <li key={ann.id} className="p-4 border rounded-lg shadow-sm">
+                                {/* Flex container to put content and button side-by-side */}
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1 pr-4">
+                                        <h3 className="font-semibold">{ann.title}</h3>
+                                        <p className="mt-1 text-sm text-gray-600 whitespace-pre-wrap">{ann.content}</p>
+                                    </div>
+
+                                    {/* <<< THE DELETE FORM GOES HERE, INSIDE THE LOOP >>> */}
+                                    <form action={deleteAnnouncement}>
+                                        <input type="hidden" name="orgId" value={orgId} />
+                                        <input type="hidden" name="eventId" value={eventId} />
+                                        <input type="hidden" name="announcementId" value={ann.id} />
+                                        <DeleteButton />
+                                    </form>
+                                </div>
+
+                                {/* Meta info remains at the bottom */}
                                 <div className="flex items-center gap-4 text-xs text-gray-500 mt-3 pt-3 border-t">
                                     <span className="flex items-center gap-1"><UserCircleIcon className="w-4 h-4" /> {ann.authorName}</span>
                                     <span className="flex items-center gap-1"><CalendarIcon className="w-4 h-4" /> {new Date(ann.createdAt.seconds * 1000).toLocaleString()}</span>

@@ -128,7 +128,7 @@ export async function fetchUsersByUid(uids: string[]): Promise<User[]> {
 // Subscriber count
 // Function to get the number of notification subscribers for an event
 export async function fetchSubscriberCount(userId: string, eventId: string) {
-    noStore();
+    noStore(); // Prevents caching of this value
     try {
         const orgId = await getOrganizationId(userId);
         if (!orgId) return 0;
@@ -139,7 +139,7 @@ export async function fetchSubscriberCount(userId: string, eventId: string) {
         return subscribersSnapshot.size;
     } catch (error) {
         console.error('Database Error fetching subscriber count:', error);
-        return 0;
+        return 0; // Return 0 in case of an error
     }
 }
 

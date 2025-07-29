@@ -46,7 +46,7 @@ export default async function SideNav() {
                 {/* User Profile Section */}
                 <div className="flex flex-col border-t border-gray-200">
                     {/* Main user info area */}
-                    <div className="flex w-full items-center gap-3 p-3">
+                    <div className="flex w-full items-center border gap-3 p-3">
                         <UserAvatar name={user.name} imageUrl={user.imageUrl} />
                         <div className="hidden md:block min-w-0">
                             <p className=" truncate">{user.name}</p>

@@ -250,7 +250,7 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
                     Urgency: 'high'
                 },
                 fcmOptions: {
-                    link: `${process.env.VERCEL_URL}/e/${eventId}`
+                    link: `https://${process.env.VERCEL_URL}/e/${eventId}`
                 }
             },
             topic: topic,
@@ -571,13 +571,36 @@ export async function subscribeToTopic(token: string, eventId: string) {
     if (!token || !eventId) {
         throw new Error('Missing FCM token or eventId');
     }
-    const topic = `event_${eventId.replace(/-/g, '_')}`; // Topics can't have hyphens
+    const topic = `event_${eventId.replace(/-/g, '_')}`;
 
     try {
+        // 1. Subscribe the token to the FCM topic (this stays the same)
         await adminMessaging.subscribeToTopic(token, topic);
         console.log(`Successfully subscribed token to topic: ${topic}`);
-        // Note: For subscriber counts, you would also save the token to a Firestore collection here.
-        // We can add that later if needed.
+
+        // --- NEW LOGIC TO COUNT SUBSCRIBERS ---
+        // 2. Find the full path to the event to save the subscriber record.
+        // Note: This lookup can be slow on a very large number of organizations.
+        // It can be optimized later if needed.
+        const orgsSnapshot = await getDocs(collection(db, 'organizations'));
+        let eventPath = '';
+        for (const orgDoc of orgsSnapshot.docs) {
+            const potentialEventRef = doc(db, `organizations/${orgDoc.id}/events`, eventId);
+            const eventSnap = await getDoc(potentialEventRef);
+            if (eventSnap.exists()) {
+                eventPath = potentialEventRef.path;
+                break;
+            }
+        }
+
+        // 3. If we found the event, save the token to its 'subscribers' subcollection.
+        // We use the token itself as the document ID to prevent duplicates.
+        if (eventPath) {
+            const subscriberRef = doc(db, `${eventPath}/subscribers`, token);
+            await setDoc(subscriberRef, { subscribedAt: Timestamp.now() });
+        }
+        // --- END OF NEW LOGIC ---
+
         return { success: true };
     } catch (error) {
         console.error('Error subscribing to topic:', error);
@@ -585,3 +608,39 @@ export async function subscribeToTopic(token: string, eventId: string) {
     }
 }
 
+
+
+// Delete announcement
+export async function deleteAnnouncement(formData: FormData) {
+    // 1. Authenticate the user
+    const session = await adminAuth.getSession();
+    if (!session?.uid) {
+        throw new Error("Not authenticated.");
+    }
+
+    // 2. Get the IDs from the form data
+    const orgId = formData.get('orgId')?.toString();
+    const eventId = formData.get('eventId')?.toString();
+    const announcementId = formData.get('announcementId')?.toString();
+
+    if (!orgId || !eventId || !announcementId) {
+        throw new Error("Missing required IDs for deletion.");
+    }
+
+    try {
+        // 3. Construct the document reference
+        const announcementRef = doc(db, `organizations/${orgId}/events/${eventId}/announcements/${announcementId}`);
+
+        // 4. Delete the document
+        await deleteDoc(announcementRef);
+
+        // 5. Revalidate the path to update the UI
+        revalidatePath(`/dashboard/events/${eventId}`);
+
+        // The return statements have been removed to fix the type error.
+
+    } catch (error) {
+        console.error("Delete Announcement Error:", error);
+        // The return statement here is also removed.
+    }
+}

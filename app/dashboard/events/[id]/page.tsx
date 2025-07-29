@@ -1,11 +1,11 @@
 // app/dashboard/events/[id]/page.tsx
 
 import { auth } from '@/app/lib/firebase-admin';
-import { fetchEventById, fetchUserProfile, fetchUsersByUid } from '@/app/lib/data';
+import { fetchEventById, fetchUserProfile, fetchUsersByUid, fetchSubscriberCount  } from '@/app/lib/data';
 import { notFound } from 'next/navigation';
 import Breadcrumbs from '@/app/ui/dashboard/events/breadcrumbs';
 import Link from 'next/link';
-import { EyeIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, PencilIcon, UsersIcon  } from '@heroicons/react/24/outline';
 import AnnouncementsTab from '@/app/ui/dashboard/events/announcements-tab';
 import AdminsTab from '@/app/ui/dashboard/events/admins-tab';
 import SettingsTab from '@/app/ui/dashboard/events/settings-tab';
@@ -30,10 +30,12 @@ export default async function Page({ params, searchParams }: PageProps) {
     }
 
     // Fetch primary data
-    const [event, userProfile] = await Promise.all([
+    const [event, userProfile, subscriberCount] = await Promise.all([
         fetchEventById(session.uid, eventId),
-        fetchUserProfile(session.uid)
+        fetchUserProfile(session.uid),
+        fetchSubscriberCount(session.uid, eventId)
     ]);
+
 
     if (!event || !userProfile) {
         notFound();
@@ -58,25 +60,41 @@ export default async function Page({ params, searchParams }: PageProps) {
                 ]}
             />
 
-            {/* Header Section */}
+            {/* Header Section start */}
             <div className="mb-8">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <h1 className="text-3xl  truncate">{event.title}</h1>
-                    <p className="md:hidden mt-2 text-gray-600">{event.description}</p>
-                    <div className="flex gap-2">
+                {/* 1. Main container: Adjusted alignment for medium screens */}
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+
+                    {/* Left side: Title and mobile description */}
+                    <div className="flex-1">
+                        <h1 className="text-3xl truncate">{event.title}</h1>
+                        <p className="md:hidden mt-1 text-gray-500">{event.description}</p>
+                    </div>
+
+                    {/* Right side: Button group */}
+                    {/* 2. Button container: Added 'flex-wrap' to allow buttons to wrap on small screens */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-2 p-2 border rounded-md text-sm">
+                            <UsersIcon className="h-5 w-5 text-gray-400" />
+                            <span className="font-medium">{subscriberCount}</span>
+                            <span className="text-gray-400">Subscribers</span>
+                        </div>
                         <Link href={`/e/${event.id}`} target="_blank" className="flex items-center gap-2 px-4 py-2 text-sm  border rounded-md shadow-sm hover:bg-gray-500">
-                            <EyeIcon className="w-4 h-4" />
+                            <EyeIcon className="h-4 w-4" />
                             View Public Page
                         </Link>
                         <QrCodeDisplay eventId={event.id} />
                         <Link href={`/dashboard/events/${event.docId}/edit`} className="flex items-center gap-2 px-4 py-2 text-sm  border border-blue-500 rounded-md shadow-sm hover:bg-blue-700">
-                            <PencilIcon className="w-4 h-4" />
+                            <PencilIcon className="h-4 w-4" />
                             Edit
                         </Link>
                     </div>
                 </div>
+
+                {/* Desktop description */}
                 <p className="hidden md:block mt-2 text-gray-600">{event.description}</p>
             </div>
+            {/* End of Header Section */}
 
             {/* Tabbed Interface */}
             <div className="w-full">
