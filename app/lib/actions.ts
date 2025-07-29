@@ -206,7 +206,7 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
         return { errors: validatedFields.error.flatten().fieldErrors, message: 'Missing or invalid fields.' };
     }
 
-    const { title, content, eventId } = validatedFields.data;
+    const { title: announcementTitle, content, eventId } = validatedFields.data;
     const user = session;
 
     try {
@@ -215,7 +215,16 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
         if (!userDoc.exists()) throw new Error("User profile not found.");
 
         const organizationId = userDoc.data().organizationId;
+
         const eventRef = doc(db, `organizations/${organizationId}/events/${eventId}`);
+        const eventSnap = await getDoc(eventRef);
+
+        if (!eventSnap.exists()) {
+            throw new Error("Event not found.");
+        }
+        // 2. Get the event's title from the data.
+        const eventTitle = eventSnap.data().title || 'Event Update';
+
 
         // Save announcement to Firestore
         const announcementRef = doc(collection(eventRef, 'announcements'));
@@ -223,17 +232,18 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
             id: announcementRef.id,
             authorName: user.name || 'Admin',
             authorId: user.uid,
-            title: title,
+            title: announcementTitle,
             content: content,
             createdAt: Timestamp.now(),
         });
 
-        // --- NEW FCM NOTIFICATION LOGIC ---
+        // --- FCM NOTIFICATION LOGIC ---
         const topic = `event_${eventId.replace(/-/g, '_')}`;
         const messagePayload = {
             notification: {
-                title: `📢 New Announcement: ${eventRef.id}`, // Example title
-                body: title,
+                // 3. Use the fetched eventTitle here
+                title: eventTitle,
+                body: announcementTitle,
             },
             webpush: {
                 fcmOptions: {
@@ -245,7 +255,7 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
 
         await adminMessaging.send(messagePayload);
         console.log(`Successfully sent notification to topic: ${topic}`);
-        // --- END OF NEW LOGIC ---
+        // --- END OF LOGIC ---
 
     } catch (error) {
         console.error("Announcement Creation Error:", error);
