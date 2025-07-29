@@ -7,22 +7,25 @@ import { getToken } from 'firebase/messaging';
 import { subscribeToTopic } from '@/app/lib/actions';
 
 export default function NotificationButton({ eventId }: { eventId: string }) {
-    const [status, setStatus] = useState<'loading' | 'subscribed' | 'denied' | 'default'>('loading');
+    const [status, setStatus] = useState<'loading' | 'subscribed' | 'denied' | 'default' | 'unsupported'>('loading');
 
     useEffect(() => {
-        if ('Notification' in window) {
-            if (Notification.permission === 'denied') {
-                setStatus('denied');
-            } else if (localStorage.getItem(`subscribed_to_${eventId}`) === 'true') {
-                setStatus('subscribed');
-            } else {
-                setStatus('default');
-            }
+        // 1. Check for basic browser support first
+        if (!('Notification' in window) || !('serviceWorker' in navigator) || !messaging) {
+            setStatus('unsupported');
+            return;
+        }
+
+        if (Notification.permission === 'denied') {
+            setStatus('denied');
+        } else if (localStorage.getItem(`subscribed_to_${eventId}`) === 'true') {
+            setStatus('subscribed');
+        } else {
+            setStatus('default');
         }
     }, [eventId]);
 
     const handleSubscribe = async () => {
-        if (!messaging) return;
         setStatus('loading');
 
         try {
@@ -35,6 +38,9 @@ export default function NotificationButton({ eventId }: { eventId: string }) {
                     await subscribeToTopic(currentToken, eventId);
                     localStorage.setItem(`subscribed_to_${eventId}`, 'true');
                     setStatus('subscribed');
+                } else {
+                    // This can happen if permission is granted but token fails to generate
+                    setStatus('denied');
                 }
             } else {
                 setStatus('denied');
@@ -45,6 +51,9 @@ export default function NotificationButton({ eventId }: { eventId: string }) {
         }
     };
 
+    if (status === 'unsupported') {
+        return <p className="text-sm text-gray-500">❌ Notifications not supported on this browser.</p>;
+    }
     if (status === 'subscribed') {
         return <p className="text-sm text-green-600">✅ Subscribed to notifications.</p>;
     }
