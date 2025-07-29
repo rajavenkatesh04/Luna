@@ -1,16 +1,16 @@
+// app/ui/NotificationButton.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { BellIcon } from '@heroicons/react/24/outline';
 import { messaging } from '@/app/lib/firebase';
-import { getToken } from 'firebase/messaging';
+import { getToken, Messaging } from 'firebase/messaging'; // Import Messaging type
 import { subscribeToTopic } from '@/app/lib/actions';
 
 export default function NotificationButton({ eventId }: { eventId: string }) {
     const [status, setStatus] = useState<'loading' | 'subscribed' | 'denied' | 'default' | 'unsupported'>('loading');
 
     useEffect(() => {
-        // 1. Check for basic browser support first
         if (!('Notification' in window) || !('serviceWorker' in navigator) || !messaging) {
             setStatus('unsupported');
             return;
@@ -26,12 +26,22 @@ export default function NotificationButton({ eventId }: { eventId: string }) {
     }, [eventId]);
 
     const handleSubscribe = async () => {
+        // --- THIS IS THE FIX ---
+        // This guard clause proves to TypeScript that 'messaging' is not null for the code below.
+        if (!messaging) {
+            console.error("Firebase Messaging is not available.");
+            setStatus('unsupported');
+            return;
+        }
+        // --- END OF FIX ---
+
         setStatus('loading');
 
         try {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
                 const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                // Now, TypeScript knows 'messaging' is of type 'Messaging', not 'Messaging | null'
                 const currentToken = await getToken(messaging, { serviceWorkerRegistration: swRegistration });
 
                 if (currentToken) {
@@ -39,7 +49,6 @@ export default function NotificationButton({ eventId }: { eventId: string }) {
                     localStorage.setItem(`subscribed_to_${eventId}`, 'true');
                     setStatus('subscribed');
                 } else {
-                    // This can happen if permission is granted but token fails to generate
                     setStatus('denied');
                 }
             } else {
@@ -47,7 +56,7 @@ export default function NotificationButton({ eventId }: { eventId: string }) {
             }
         } catch (error) {
             console.error('An error occurred while subscribing to notifications: ', error);
-            setStatus('default'); // Reset on error
+            setStatus('default');
         }
     };
 
