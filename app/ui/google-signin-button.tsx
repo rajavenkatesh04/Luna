@@ -6,6 +6,7 @@ import { auth, db } from "@/app/lib/firebase";
 import { useState } from "react";
 import { doc, getDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
 
 // Google Icon SVG component
 const GoogleIcon = () => (
@@ -100,7 +101,18 @@ export default function GoogleSignInButton() {
                 className="flex w-full items-center justify-center gap-3 rounded-md border border-gray-300  px-4 py-2 text-sm font-medium hover:bg-gray-50 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
                 <GoogleIcon />
-                <span>{isLoading ? 'Signing In...' : 'Sign in with Google'}</span>
+                <span>
+                    {isLoading ? (
+                        // When pending, show the spinner and adjust the text
+                        <>
+                            <LoadingSpinner className="mr-2" />
+                            <span>Signing In...</span>
+                        </>
+                    ) : (
+                        // Default button text
+                        <span>Sign in with Google</span>
+                    )}
+                </span>
             </button>
             {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
         </div>
