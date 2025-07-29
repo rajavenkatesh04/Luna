@@ -81,10 +81,11 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
 
     return (
         <div>
-            {/* Create Announcement Form (remains the same) */}
+            {/* Create Announcement Form */}
             <form action={dispatch} ref={formRef} className="p-4 rounded-lg border">
                 <h3 className="mb-2">Create New Announcement</h3>
                 <input type="hidden" name="eventId" value={eventId} />
+                <input type="hidden" name="organizationId" value={orgId} />
                 <div className="mb-2">
                     <label htmlFor="title" className="sr-only">Title</label>
                     <input type="text" name="title" id="title" required placeholder="Announcement Title" className="block w-full px-3 py-2 border border-gray-300 rounded-md"/>
@@ -100,13 +101,12 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
                 </div>
             </form>
 
-            {/* <<< THE SINGLE DELETE FORM SHOULD BE REMOVED FROM HERE >>> */}
 
             {/* Announcements List */}
             <div className="mt-8">
                 <h3 className=" mb-4">Posted Announcements</h3>
                 {isLoading ? (
-                    <p>Loading announcements...</p>
+                    <p className={`text-center animate-pulse`}>Loading announcements...</p>
                 ) : announcements.length > 0 ? (
                     <ul className="space-y-4">
                         {announcements.map((ann) => (

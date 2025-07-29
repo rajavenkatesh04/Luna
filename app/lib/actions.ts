@@ -201,6 +201,7 @@ const CreateAnnouncementSchema = z.object({
     title: z.string().min(1, { message: "Title is required." }),
     content: z.string().min(1, { message: "Content is required." }),
     eventId: z.string(),
+    organizationId: z.string(),
 });
 
 export async function createAnnouncement(prevState: CreateAnnouncementState, formData: FormData): Promise<CreateAnnouncementState> {
@@ -213,23 +214,26 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
         title: formData.get('title'),
         content: formData.get('content'),
         eventId: formData.get('eventId'),
+        organizationId: formData.get('organizationId'),
     });
 
     if (!validatedFields.success) {
         return { errors: validatedFields.error.flatten().fieldErrors, message: 'Missing or invalid fields.' };
     }
 
-    const { title: announcementTitle, content, eventId } = validatedFields.data;
+    const { title: announcementTitle, content, eventId, organizationId } = validatedFields.data;
 
     try {
-        const userDoc = await adminDb.doc(`users/${session.uid}`).get();
-        const organizationId = userDoc.data()!.organizationId;
 
         const eventRef = adminDb.doc(`organizations/${organizationId}/events/${eventId}`);
         const eventSnap = await eventRef.get();
-        if (!eventSnap.exists) throw new Error("Event not found.");
+        if (!eventSnap.exists) {
+            // This error check is still important!
+            throw new Error("Event not found.");
+        }
         const eventTitle = eventSnap.data()!.title || 'Event Update';
 
+        // The rest of your logic is great!
         const announcementRef = eventRef.collection('announcements').doc();
         await announcementRef.set({
             id: announcementRef.id,
@@ -256,15 +260,15 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
         };
 
         await adminMessaging.send(messagePayload);
+
     } catch (error) {
         console.error("Announcement Creation Error:", error);
         return { message: "Database error." };
     }
 
-    revalidatePath(`/dashboard/events/${eventId}`);
+    revalidatePath(`/dashboard/events/${eventId}?tab=announcements`);
     return { message: `Successfully created announcement.` };
 }
-
 
 export async function deleteAnnouncement(formData: FormData) {
     const session = await adminAuth.getSession();
