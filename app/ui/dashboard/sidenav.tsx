@@ -39,15 +39,15 @@ export default async function SideNav() {
                 </div>
             </Link>
 
-            <div className="flex grow flex-row justify-between space-x-2 md:flex-col md:space-x-0 md:space-y-2">
+            <div className="flex grow flex-row justify-between  md:flex-col md:space-x-0 md:space-y-2">
                 <NavLinks />
                 <div className="hidden h-auto w-full grow rounded-md  md:block"></div>
 
                 {/* User Profile Section */}
                 <div className="flex flex-col border-t border-gray-200">
                     {/* Main user info area */}
-                    <div className="flex w-full items-center border gap-3 p-3">
-                        <UserAvatar name={user.name} imageUrl={user.imageUrl} />
+                    <div className="flex w-full items-center ">
+                        <div className={` px-4 py-1 `}><UserAvatar name={user.name} imageUrl={user.imageUrl} /></div>
                         <div className="hidden md:block min-w-0">
                             <p className=" truncate">{user.name}</p>
                             <p className="text-xs text-gray-500 text-wrap wrap-anywhere">{user.email}</p>
@@ -57,11 +57,11 @@ export default async function SideNav() {
                     {/* Workspace and Role Info (Desktop only) */}
                     <div className="hidden md:block space-y-2 border-t border-gray-200 px-3 py-3 text-sm">
                         <div className="flex justify-between items-center gap-2 ">
-                            <span className="font-semibold text-gray-600">Workspace:</span>
-                            <p className="text-gray-700 text-wrap wrap-anywhere text-xs ">{user.organizationName}</p>
+                            <span className="font-semibold ">Workspace:</span>
+                            <p className=" text-wrap wrap-anywhere text-xs ">{user.organizationName}</p>
                         </div>
                         <div className="flex justify-start gap-3 ">
-                            <span className="font-semibold text-gray-600">Role:</span>
+                            <span className="font-semibold ">Role:</span>
                             <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${roleStyles[user.role as keyof typeof roleStyles] || roleStyles.member}`}>{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</span>
                         </div>
                     </div>

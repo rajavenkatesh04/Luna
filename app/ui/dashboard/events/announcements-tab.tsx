@@ -1,4 +1,3 @@
-// app/ui/dashboard/events/announcements-tab.tsx
 'use client';
 import { useActionState } from "react";
 import { useEffect, useState, useRef } from 'react';

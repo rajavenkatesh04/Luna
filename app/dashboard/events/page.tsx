@@ -16,7 +16,7 @@ async function EventsList() {
             {events.length > 0 ? (
                 events.map(event => (
                     <Link href={`/dashboard/events/${event.docId}`} key={event.docId} className="block border border-gray-500 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow">
-                        <h3 className=" text-xl mb-2 text-blue-600">{event.title}</h3>
+                        <h3 className=" text-xl mb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-400  to-orange-600">{event.title}</h3>
                         <p className=" truncate">{event.description || 'No description'}</p>
                         <div className="mt-4 pt-4 border-t border-gray-200">
                             <p className="text-sm text-gray-500">Event ID:  <span className="font-mono bg-gray-200 mx-2 px-1 py-1 rounded">{event.id}</span></p>
