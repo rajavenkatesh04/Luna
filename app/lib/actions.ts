@@ -241,11 +241,14 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
         const topic = `event_${eventId.replace(/-/g, '_')}`;
         const messagePayload = {
             notification: {
-                // 3. Use the fetched eventTitle here
                 title: eventTitle,
                 body: announcementTitle,
             },
             webpush: {
+                // Set the urgency to 'high' to prioritize delivery
+                headers: {
+                    Urgency: 'high'
+                },
                 fcmOptions: {
                     link: `${process.env.VERCEL_URL}/e/${eventId}`
                 }
