@@ -1,5 +1,3 @@
-// app/dashboard/events/[id]/page.tsx
-
 import { auth } from '@/app/lib/firebase-admin';
 import { fetchEventById, fetchUserProfile, fetchUsersByUid, fetchSubscriberCount  } from '@/app/lib/data';
 import { notFound } from 'next/navigation';
@@ -142,8 +140,7 @@ export default async function Page({ params, searchParams }: PageProps) {
                 {/* Conditionally render Tab Content */}
                 <div className="py-6">
                     {activeTab === 'announcements' && <AnnouncementsTab eventId={event.docId} orgId={userProfile.organizationId} />}
-                    {/* Corrected: Pass the adminUsers prop to the AdminsTab */}
-                    {activeTab === 'admins' && <AdminsTab eventId={event.docId} admins={adminUsers} />}
+                    {activeTab === 'admins' && <AdminsTab eventId={event.docId} admins={adminUsers} orgId={userProfile.organizationId} />}
                     {activeTab === 'settings' && <SettingsTab eventId={event.docId} />}
                 </div>
             </div>

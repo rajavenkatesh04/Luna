@@ -40,6 +40,8 @@ export async function fetchLatestEvents(userId: string) {
         if (!orgId) return [];
         const eventsQuery = query(
             collection(db, `organizations/${orgId}/events`),
+            // This new 'where' clause filters for events the user is an admin of
+            where("admins", "array-contains", userId),
             orderBy('createdAt', 'desc'),
             limit(5)
         );
@@ -143,3 +145,12 @@ export async function fetchSubscriberCount(userId: string, eventId: string) {
     }
 }
 
+
+// Fetches pending invitations for the logged-in user.
+export async function fetchPendingInvites(userId: string) {
+    noStore();
+    const invitesRef = collection(db, 'invitations');
+    const q = query(invitesRef, where("inviteeUid", "==", userId), where("status", "==", "pending"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => doc.data());
+}

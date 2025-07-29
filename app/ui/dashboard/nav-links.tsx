@@ -6,11 +6,13 @@ import clsx from 'clsx';
 import {
     HomeIcon,
     CalendarDaysIcon,
+    EnvelopeIcon,
 } from '@heroicons/react/24/outline';
 
 const links = [
     { name: 'Overview', href: '/dashboard', icon: HomeIcon },
     { name: 'Events', href: '/dashboard/events', icon: CalendarDaysIcon },
+    { name: 'Invite', href: '/dashboard/invitations', icon: EnvelopeIcon },
 ]
 
 export default function NavLinks() {

@@ -1,20 +1,28 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { QrCodeIcon, ArrowDownTrayIcon, DocumentDuplicateIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 export default function QrCodeDisplay({ eventId }: { eventId: string }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [publicUrl, setPublicUrl] = useState('');
     const qrCodeRef = useRef<HTMLDivElement>(null);
 
-    const publicUrl = `${window.location.origin}/e/${eventId}`;
+    // This useEffect hook runs only on the client-side after the component mounts.
+    // This is the correct place to access the `window` object.
+    useEffect(() => {
+        // Check if window is defined to avoid server-side errors
+        if (typeof window !== 'undefined') {
+            setPublicUrl(`${window.location.origin}/e/${eventId}`);
+        }
+    }, [eventId]); // The dependency array ensures this runs if the eventId prop changes.
 
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => {
         setIsModalOpen(false);
-        setCopied(false);
+        setCopied(false); // Reset copied state when closing modal
     };
 
     const downloadQRCode = () => {
@@ -33,9 +41,11 @@ export default function QrCodeDisplay({ eventId }: { eventId: string }) {
     };
 
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(publicUrl);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        if (publicUrl) {
+            navigator.clipboard.writeText(publicUrl);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+        }
     };
 
     return (
@@ -55,14 +65,21 @@ export default function QrCodeDisplay({ eventId }: { eventId: string }) {
                 >
                     <div
                         className="p-6 bg-white rounded-lg shadow-xl text-center flex flex-col items-center"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()} // Prevents modal from closing when clicking inside
                     >
                         <h3 className="text-lg font-medium text-gray-900 mb-4">Event QR Code</h3>
 
                         <div className="p-2 bg-gray-100 rounded-md inline-block" ref={qrCodeRef}>
-                            <QRCodeCanvas value={publicUrl} size={192} level="H" includeMargin={true} />
+                            {/* Conditionally render QRCodeCanvas only when publicUrl is available */}
+                            {publicUrl ? (
+                                <QRCodeCanvas value={publicUrl} size={192} level="H" includeMargin={true} />
+                            ) : (
+                                <div style={{ width: 192, height: 192 }} className="flex items-center justify-center bg-gray-200">
+                                    <p className="text-xs text-gray-500">Loading...</p>
+                                </div>
+                            )}
                         </div>
-                        <p className="mt-2 text-xs text-gray-500 break-all">{publicUrl}</p>
+                        <p className="mt-2 text-xs text-gray-500 break-all">{publicUrl || 'Generating link...'}</p>
 
                         <div className="flex gap-4 mt-6">
                             <button onClick={downloadQRCode} className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-200 rounded-md hover:bg-gray-300">
