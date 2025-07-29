@@ -1,4 +1,4 @@
-import {collection, getDocs, query, doc, getDoc, orderBy, limit, where} from 'firebase/firestore';
+import {collection, getDocs, query, doc, getDoc, orderBy, limit, where, collectionGroup} from 'firebase/firestore';
 import { db } from './firebase';
 import { unstable_noStore as noStore } from 'next/cache';
 import { User, Event } from '@/app/lib/definitions'
@@ -32,30 +32,42 @@ export async function fetchCardData(userId: string) {
     }
 }
 
-// Function to fetch the 5 most recent events
+// Fetches the 5 most recent events a user is an admin of, across ALL organizations.
 export async function fetchLatestEvents(userId: string) {
-    noStore();
+    noStore(); // Recommended for dynamic data in Next.js
+
     try {
-        const orgId = await getOrganizationId(userId);
-        if (!orgId) return [];
+        // 1. Create a reference to the 'events' collection group.
+        // This tells Firestore to search in every subcollection named 'events'.
+        const eventsRef = collectionGroup(db, 'events');
+
+        // 2. Build the query.
         const eventsQuery = query(
-            collection(db, `organizations/${orgId}/events`),
-            // This new 'where' clause filters for events the user is an admin of
+            eventsRef,
+            // Find all documents where the 'admins' array contains the user's ID.
             where("admins", "array-contains", userId),
+            // Order the results by creation date, newest first.
             orderBy('createdAt', 'desc'),
+            // Limit to the 5 most recent events.
             limit(5)
         );
+
+        // 3. Execute the query.
         const eventsSnapshot = await getDocs(eventsQuery);
+
+        // 4. Map the results to an array of event objects.
         const events = eventsSnapshot.docs.map(doc => {
             return { ...doc.data(), docId: doc.id } as Event;
         });
+
         return events;
+
     } catch (error) {
         console.error('Database Error fetching latest events:', error);
+        // Return an empty array on error to prevent the page from crashing.
         return [];
     }
 }
-
 // Fetches the complete user profile, including organization name and role
 export async function fetchUserProfile(userId: string) {
     noStore();
@@ -86,22 +98,39 @@ export async function fetchUserProfile(userId: string) {
     }
 }
 
-// Fetches a single event by its ID, ensuring the user has permission.
 export async function fetchEventById(userId: string, eventId: string) {
     noStore();
     try {
-        const orgId = await getOrganizationId(userId);
-        if (!orgId) {
-            console.error("User has no organization ID.");
+        const eventsRef = collectionGroup(db, 'events');
+        const q = query(eventsRef, where('id', '==', eventId), limit(1));
+        const eventSnapshot = await getDocs(q);
+
+        if (eventSnapshot.empty) {
+            console.error(`Event with ID ${eventId} not found in any organization.`);
             return null;
         }
-        const eventRef = doc(db, `organizations/${orgId}/events`, eventId);
-        const eventDoc = await getDoc(eventRef);
-        if (!eventDoc.exists()) {
-            console.error(`Event with ID ${eventId} not found.`);
+
+        const eventDoc = eventSnapshot.docs[0];
+        const eventData = eventDoc.data() as Event;
+
+        // Get the parent organization ID from the document's path.
+        // eventDoc.ref.parent is the 'events' collection.
+        // eventDoc.ref.parent.parent is the organization document.
+        const organizationId = eventDoc.ref.parent.parent?.id;
+
+        if (!organizationId) {
+            console.error(`Could not determine organizationId for event ${eventId}.`);
             return null;
         }
-        return { ...eventDoc.data(), docId: eventDoc.id } as Event;
+
+        if (!eventData.admins.includes(userId)) {
+            console.error(`User ${userId} does not have permission for event ${eventId}.`);
+            return null;
+        }
+
+        // Now, we return the organizationId along with the event data!
+        return { ...eventData, docId: eventDoc.id, organizationId: organizationId };
+
     } catch (error) {
         console.error('Database Error fetching event by ID:', error);
         return null;

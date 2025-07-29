@@ -1,7 +1,6 @@
 'use client';
 
 import { User } from '@/app/lib/definitions';
-import UserAvatar from '../user-avatar';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { sendInvite } from '@/app/lib/actions';
@@ -15,20 +14,21 @@ function InviteButton() {
     );
 }
 
-export default function AdminsTab({ eventId, admins, orgId }: { eventId: string, admins: User[], orgId: string }) {
+
+export default function AdminsTab({ eventId, admins, orgId, ownerUid }: { eventId: string, admins: User[], orgId: string, ownerUid: string }) {
     const [state, formAction] = useActionState(sendInvite, { message: null });
 
     return (
         <div className="space-y-8">
-            {/* Header Section from your preferred design */}
+            {/* Header Section */}
             <div>
-                <h2 className="text-xl font-semibold">Manage Admins</h2>
+                <h2 className="text-xl ">Manage Admins</h2>
                 <p className="mt-1 text-sm text-gray-500">Invite collaborators to help manage this event.</p>
             </div>
 
-            {/* Functional Invite Form */}
+            {/* Invite Form */}
             <div>
-                <h3 className="font-medium text-gray-700">Invite New Admin</h3>
+                <h3 className="font-medium">Invite New Admin</h3>
                 <form action={formAction} className="mt-2 flex items-center gap-3 rounded-lg border p-4">
                     <input type="hidden" name="eventId" value={eventId} />
                     <input type="hidden" name="orgId" value={orgId} />
@@ -44,26 +44,36 @@ export default function AdminsTab({ eventId, admins, orgId }: { eventId: string,
                 {state?.message && <p className="mt-2 text-sm text-gray-600">{state.message}</p>}
             </div>
 
-            {/* Styled List of Current Admins */}
+            {/* List of Current Admins */}
             <div>
-                <h3 className="font-medium text-gray-700">Current Admins</h3>
+                <h3 className="font-medium">Current Admins</h3>
                 <div className="mt-2 border rounded-lg">
                     <ul className="divide-y divide-gray-200">
-                        {admins.map(admin => (
-                            <li key={admin.uid} className="px-6 py-4 flex items-center justify-between">
-                                {/* User info with Avatar */}
-                                <div className="flex items-center gap-4">
-                                    <div>
-                                        <p className="font-medium text-gray-900">{admin.displayName}</p>
-                                        <p className="text-sm text-gray-500">{admin.email}</p>
+                        {/* map over admins and close tags */}
+                        {admins.map(admin => {
+                            const isOwner = admin.uid === ownerUid;
+                            return (
+                                <li key={admin.uid} className="px-6 py-4 flex items-center justify-between">
+                                    {/* User info */}
+                                    <div className="flex items-center gap-4">
+                                        <div>
+                                            <p className="font-medium text-green-600">{admin.displayName}</p>
+                                            <p className="text-sm ">{admin.email}</p>
+                                        </div>
                                     </div>
-                                </div>
-                                {/* Styled Role Badge */}
-                                <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-                                    {admin.role ? admin.role.charAt(0).toUpperCase() + admin.role.slice(1) : 'Member'}
-                                </span>
-                            </li>
-                        ))}
+                                    {/* Role Badge */}
+                                    {isOwner ? (
+                                        <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                                            Owner
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                                            Admin
+                                        </span>
+                                    )}
+                                </li>
+                            );
+                        })}
                     </ul>
                 </div>
             </div>

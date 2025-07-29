@@ -140,7 +140,7 @@ export default async function Page({ params, searchParams }: PageProps) {
                 {/* Conditionally render Tab Content */}
                 <div className="py-6">
                     {activeTab === 'announcements' && <AnnouncementsTab eventId={event.docId} orgId={userProfile.organizationId} />}
-                    {activeTab === 'admins' && <AdminsTab eventId={event.docId} admins={adminUsers} orgId={userProfile.organizationId} />}
+                    {activeTab === 'admins' && <AdminsTab eventId={event.docId} admins={adminUsers} orgId={userProfile.organizationId} ownerUid={event.ownerUid} />}
                     {activeTab === 'settings' && <SettingsTab eventId={event.docId} />}
                 </div>
             </div>
