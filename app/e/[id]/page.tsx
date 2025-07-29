@@ -7,6 +7,7 @@ import { Announcement, Event } from '@/app/lib/definitions';
 import { UserCircleIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import Navbar from "@/app/ui/Navbar";
 import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
+import NotificationButton from "@/app/ui/NotificationButton";
 
 // This is a helper function to fetch the initial event data.
 // In a real app, you might use a library like SWR or React Query for this.
@@ -90,6 +91,11 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                 <header className="text-center mb-8">
                     <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-teal-400">{event?.title}</h1>
                     <p className="mt-2 text-lg text-gray-600">{event?.description}</p>
+
+                    {/* Notification Button */}
+                    <div className="mt-6 flex justify-center">
+                        {eventId && <NotificationButton eventId={eventId} />}
+                    </div>
                 </header>
 
                 <div className="space-y-4">

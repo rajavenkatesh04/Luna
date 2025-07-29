@@ -124,3 +124,22 @@ export async function fetchUsersByUid(uids: string[]): Promise<User[]> {
     }
 }
 
+
+// Subscriber count
+// Function to get the number of notification subscribers for an event
+export async function fetchSubscriberCount(userId: string, eventId: string) {
+    noStore();
+    try {
+        const orgId = await getOrganizationId(userId);
+        if (!orgId) return 0;
+
+        const subscribersPath = `organizations/${orgId}/events/${eventId}/subscribers`;
+        const subscribersSnapshot = await getDocs(collection(db, subscribersPath));
+
+        return subscribersSnapshot.size;
+    } catch (error) {
+        console.error('Database Error fetching subscriber count:', error);
+        return 0;
+    }
+}
+

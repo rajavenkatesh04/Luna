@@ -2,26 +2,16 @@
 
 "use server"
 
-
-
 import { z } from "zod";
-
 import { nanoid } from 'nanoid';
-
 import { signOut } from 'firebase/auth';
-
 import {auth, db} from '@/app/lib/firebase';
-
 import { auth as adminAuth } from '@/app/lib/firebase-admin';
-
+import { adminMessaging } from "@/app/lib/firebase-server";
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, Timestamp, getDocs, writeBatch, query, limit } from 'firebase/firestore';
-
 import { redirect } from 'next/navigation';
-
 import { cookies } from 'next/headers';
-
 import { revalidatePath } from 'next/cache';
-
 
 
 /**
@@ -49,13 +39,8 @@ export async function logout() {
         console.error('Logout Error:', error);
 
     }
-
-
-
 // Always redirect to login after attempting to log out
-
     redirect('/login');
-
 }
 
 
@@ -181,163 +166,95 @@ export async function createEvent(prevState: CreateEventState, formData: FormDat
 
 
     } catch (error) {
-
         console.error("Event Creation Error:", error);
-
         return { message: "Database error: Failed to create event." };
-
     }
 
 
-
 // 4. On success, revalidate the events page and redirect the user there.
-
     revalidatePath('/dashboard/events');
-
     redirect('/dashboard/events');
-
 }
-
-
-
-
 
 
 
 // --- ANNOUNCEMENT CREATION ---
-
 export type CreateAnnouncementState = {
-
-    errors?: {
-
-        title?: string[];
-
-        content?: string[];
-
-    };
-
+    errors?: { title?: string[]; content?: string[]; };
     message?: string | null;
-
 };
 
-
-
 const CreateAnnouncementSchema = z.object({
-
     title: z.string().min(1, { message: "Title is required." }),
-
     content: z.string().min(1, { message: "Content is required." }),
-
-    eventId: z.string(), // Hidden input to know which event this belongs to
-
+    eventId: z.string(),
 });
 
-
-
 export async function createAnnouncement(prevState: CreateAnnouncementState, formData: FormData): Promise<CreateAnnouncementState> {
-
     const session = await adminAuth.getSession();
-
     if (!session?.uid) {
-
         return { message: "Authentication error: Not logged in." };
-
     }
-
-
 
     const validatedFields = CreateAnnouncementSchema.safeParse({
-
         title: formData.get('title'),
-
         content: formData.get('content'),
-
         eventId: formData.get('eventId'),
-
     });
 
-
-
     if (!validatedFields.success) {
-
-        return {
-
-            errors: validatedFields.error.flatten().fieldErrors,
-
-            message: 'Missing or invalid fields.',
-
-        };
-
+        return { errors: validatedFields.error.flatten().fieldErrors, message: 'Missing or invalid fields.' };
     }
-
-
 
     const { title, content, eventId } = validatedFields.data;
-
     const user = session;
 
-
-
     try {
-
         const userDocRef = doc(db, 'users', user.uid);
-
         const userDoc = await getDoc(userDocRef);
-
-        if (!userDoc.exists()) {
-
-            return { message: "Database error: User profile not found." };
-
-        }
+        if (!userDoc.exists()) throw new Error("User profile not found.");
 
         const organizationId = userDoc.data().organizationId;
+        const eventRef = doc(db, `organizations/${organizationId}/events/${eventId}`);
 
-
-
-// Create a new announcement in the sub-collection of the event
-
-        const announcementRef = doc(collection(db, `organizations/${organizationId}/events/${eventId}/announcements`));
-
-
-
+        // Save announcement to Firestore
+        const announcementRef = doc(collection(eventRef, 'announcements'));
         await setDoc(announcementRef, {
-
             id: announcementRef.id,
-
             authorName: user.name || 'Admin',
-
             authorId: user.uid,
-
             title: title,
-
             content: content,
-
-            isPinned: false, // Announcements are not pinned by default
-
             createdAt: Timestamp.now(),
-
         });
 
+        // --- NEW FCM NOTIFICATION LOGIC ---
+        const topic = `event_${eventId.replace(/-/g, '_')}`;
+        const messagePayload = {
+            notification: {
+                title: `📢 New Announcement: ${eventRef.id}`, // Example title
+                body: title,
+            },
+            webpush: {
+                fcmOptions: {
+                    link: `${process.env.VERCEL_URL}/e/${eventId}`
+                }
+            },
+            topic: topic,
+        };
 
+        await adminMessaging.send(messagePayload);
+        console.log(`Successfully sent notification to topic: ${topic}`);
+        // --- END OF NEW LOGIC ---
 
     } catch (error) {
-
         console.error("Announcement Creation Error:", error);
-
         return { message: "Database error: Failed to create announcement." };
-
     }
 
-
-
-// Revalidate the event page path to ensure data is fresh
-
     revalidatePath(`/dashboard/events/${eventId}`);
-
     return { message: `Successfully created announcement.` };
-
 }
-
 
 
 
@@ -345,17 +262,10 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
 // --- EVENT UPDATE ---
 
 export type UpdateEventState = CreateEventState;
-
-
-
 const UpdateEventSchema = z.object({
-
     id: z.string(), // We now get the ID from a hidden form input
-
     title: z.string().min(3, { message: "Title must be at least 3 characters." }),
-
     description: z.string().optional(),
-
 });
 
 
@@ -640,3 +550,25 @@ export async function deleteEvent(
     revalidatePath('/dashboard/events');
     redirect('/dashboard/events');
 }
+
+
+
+// 2. ADD THIS NEW SERVER ACTION
+export async function subscribeToTopic(token: string, eventId: string) {
+    if (!token || !eventId) {
+        throw new Error('Missing FCM token or eventId');
+    }
+    const topic = `event_${eventId.replace(/-/g, '_')}`; // Topics can't have hyphens
+
+    try {
+        await adminMessaging.subscribeToTopic(token, topic);
+        console.log(`Successfully subscribed token to topic: ${topic}`);
+        // Note: For subscriber counts, you would also save the token to a Firestore collection here.
+        // We can add that later if needed.
+        return { success: true };
+    } catch (error) {
+        console.error('Error subscribing to topic:', error);
+        return { success: false, error: 'Could not subscribe to topic.' };
+    }
+}
+
