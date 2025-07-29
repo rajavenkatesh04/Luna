@@ -23,7 +23,8 @@ export async function logout() {
         // This signs the user out of the client-side authentication state.
         await signOut(auth);
         // This clears the server-side session cookie.
-        cookies().set('session', '', { maxAge: -1 });
+        const cookieStore = await cookies();
+        cookieStore.set('session', '', { maxAge: -1 });
     } catch (error) {
         console.error('Logout Error:', error);
     }
@@ -149,14 +150,16 @@ export async function updateEvent(prevState: UpdateEventState, formData: FormDat
 
 
 export type DeleteEventState = {
-    message: string | null;
+    // Change 'null' to 'undefined' to match useActionState
+    message?: string;
     errors?: {
         server?: string[];
     };
 };
-export async function deleteEvent(prevState: DeleteEventState, formData: FormData): Promise<{ message?: string }> {
+export async function deleteEvent(prevState: DeleteEventState, formData: FormData): Promise<DeleteEventState> {
     const session = await adminAuth.getSession();
     if (!session?.uid) {
+        // Return a state object that matches DeleteEventState
         return { message: "Authentication error." };
     }
 
@@ -170,12 +173,11 @@ export async function deleteEvent(prevState: DeleteEventState, formData: FormDat
         const organizationId = userDoc.data()!.organizationId;
         const eventPath = `organizations/${organizationId}/events/${eventId}`;
 
-        // Delete all subcollections of the event first
         await deleteCollection(`${eventPath}/subscribers`, 50);
         await deleteCollection(`${eventPath}/announcements`, 50);
 
-        // Finally, delete the event document itself
         await adminDb.doc(eventPath).delete();
+
     } catch (error) {
         console.error('Event Deletion Error:', error);
         return { message: 'An error occurred while trying to delete the event.' };
