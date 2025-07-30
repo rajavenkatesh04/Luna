@@ -1,23 +1,53 @@
-import {NextRequest, NextResponse} from "next/server";
+// middleware.ts
+import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest ) {
-    const sessionCookie = request.cookies.get('session');
+export async function middleware(request: NextRequest) {
+    const sessionCookie = request.cookies.get('session')?.value;
+    const url = request.nextUrl.clone();
 
-    // If user is logged in, redirect them away from the login page to the dashboard
-    if (sessionCookie && request.nextUrl.pathname.startsWith('/login')) {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+    // The base URL for your app, required for the internal fetch
+    const appBaseUrl = request.nextUrl.origin;
+
+    // A helper function to check session validity via our new API route
+    const isSessionValid = async (): Promise<boolean> => {
+        if (!sessionCookie) return false;
+        try {
+            // Fetch from our internal API route
+            const response = await fetch(`${appBaseUrl}/api/auth/verify-session`, {
+                headers: {
+                    Cookie: `session=${sessionCookie}`
+                }
+            });
+            return response.ok;
+        } catch (error) {
+            console.error('Error verifying session:', error);
+            return false;
+        }
+    };
+
+    const hasValidSession = await isSessionValid();
+
+    // If trying to access the login page with a valid session, redirect to dashboard
+    if (url.pathname.startsWith('/login')) {
+        if (hasValidSession) {
+            return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+        return NextResponse.next();
     }
 
-    // If user is not logged in, protect the dashboard and complete-profile pages
-    if (!sessionCookie && (request.nextUrl.pathname.startsWith('/dashboard'))) {
-        return NextResponse.redirect(new URL('/login', request.url));
+    // If trying to access a protected route without a valid session, redirect to login
+    if (url.pathname.startsWith('/dashboard')) {
+        if (!hasValidSession) {
+            url.pathname = '/login';
+            url.searchParams.set('error', 'session_expired');
+            return NextResponse.redirect(url);
+        }
     }
 
-    // If neither of the above conditions are met, allow the request to proceed.
     return NextResponse.next();
 }
 
-// This configures the middleware to run ONLY on the specified paths.
+// Config remains the same
 export const config = {
     matcher: ['/dashboard/:path*', '/login'],
-}
+};
