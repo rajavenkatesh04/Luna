@@ -1,5 +1,3 @@
-// app/ui/dashboard/nav-links.tsx
-
 "use client"
 
 import { usePathname } from "next/navigation";
@@ -17,7 +15,7 @@ export default function NavLinks() {
     const pathname = usePathname();
 
     return (
-        <>
+        <div className="flex flex-row items-center justify-end gap-2 md:flex-col md:justify-start md:space-y-2 md:gap-0">
             {links.map((link) => {
                 const LinkIcon = link.icon;
 
@@ -26,19 +24,20 @@ export default function NavLinks() {
                         key={link.name}
                         href={link.href}
                         className={clsx(
-                            // Base styles for all links
-                            'flex h-[48px] grow items-center justify-center gap-2 rounded-md border border-transparent p-3 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 md:flex-none md:justify-start md:p-2 md:px-3',
+                            'flex h-12 w-12 items-center justify-center rounded-full text-gray-600 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100',
+                            'md:h-[48px] md:w-full md:rounded-md md:justify-start md:px-3 md:gap-2',
                             {
-                                // Active link styles
-                                'bg-gray-100 text-gray-900 dark:bg-zinc-800 dark:text-zinc-100': pathname === link.href,
+                                'border border-pink-200 bg-pink-50 text-pink-600 dark:border-pink-800/50 dark:bg-pink-900/20 dark:text-pink-300': pathname === link.href,
+                                'md:bg-gray-100 md:text-gray-900 md:dark:bg-zinc-800 md:dark:text-zinc-100': pathname === link.href,
                             },
                         )}
+                        title={link.name}
                     >
                         <LinkIcon className="w-6" />
                         <p className="hidden md:block">{link.name}</p>
                     </Link>
                 );
             })}
-        </>
+        </div>
     );
 }

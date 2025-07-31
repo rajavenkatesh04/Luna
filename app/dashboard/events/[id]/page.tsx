@@ -121,7 +121,7 @@ async function EventDetails({ params, searchParams }: PageProps) {
 
                 <div className="py-6">
                     {activeTab === 'announcements' && <AnnouncementsTab eventId={event.docId} orgId={userProfile.organizationId} />}
-                    {activeTab === 'admins' && <AdminsTab eventId={event.docId} admins={adminUsers} orgId={userProfile.organizationId} ownerUid={event.ownerUid} />}
+                    {activeTab === 'admins' && <AdminsTab eventId={event.docId} admins={adminUsers} orgId={userProfile.organizationId} ownerUid={event.ownerUid} currentUserId={session.uid} />}
                     {activeTab === 'settings' && <SettingsTab eventId={event.docId} />}
                 </div>
             </div>

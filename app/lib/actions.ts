@@ -382,6 +382,67 @@ export async function acceptInvite(formData: FormData) {
     redirect('/dashboard/events');
 }
 
+export async function rejectInvite(formData: FormData) {
+    const session = await adminAuth.getSession();
+    if (!session) throw new Error("Not authenticated.");
+
+    const invitationId = formData.get('invitationId')?.toString();
+    if (!invitationId) throw new Error("Missing ID.");
+
+    const invitationRef = adminDb.doc(`invitations/${invitationId}`);
+    const inviteDoc = await invitationRef.get();
+    if (!inviteDoc.exists || inviteDoc.data()?.inviteeUid !== session.uid) {
+        throw new Error("Invitation not found or invalid.");
+    }
+
+    await invitationRef.update({ status: 'rejected' });
+
+    revalidatePath('/dashboard/invitations');
+}
+
+export async function removeAdmin(formData: FormData) {
+    const session = await adminAuth.getSession();
+    if (!session) throw new Error("Not authenticated.");
+
+    const orgId = formData.get('orgId')?.toString();
+    const eventId = formData.get('eventId')?.toString();
+    const adminUidToRemove = formData.get('adminUidToRemove')?.toString();
+
+    if (!orgId || !eventId || !adminUidToRemove) {
+        throw new Error("Missing required fields.");
+    }
+
+    try {
+        const eventRef = adminDb.doc(`organizations/${orgId}/events/${eventId}`);
+        const eventSnap = await eventRef.get();
+
+        if (!eventSnap.exists) throw new Error("Event not found.");
+
+        const eventData = eventSnap.data()!;
+
+        // SECURITY CHECK: Only the owner of the event can remove an admin.
+        if (eventData.ownerUid !== session.uid) {
+            throw new Error("Only the event owner can remove admins.");
+        }
+
+        // SECURITY CHECK: The owner cannot be removed.
+        if (eventData.ownerUid === adminUidToRemove) {
+            throw new Error("The event owner cannot be removed.");
+        }
+
+        // Perform the update
+        await eventRef.update({
+            admins: FieldValue.arrayRemove(adminUidToRemove)
+        });
+
+        revalidatePath(`/dashboard/events/${eventId}?tab=admins`);
+
+    } catch (error) {
+        console.error("Remove Admin Error:", error);
+        // You can return an error message to the client if you use useActionState
+    }
+}
+
 
 // =================================================================================
 // --- NOTIFICATION ACTIONS ---
