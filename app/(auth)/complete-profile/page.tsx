@@ -6,11 +6,21 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/app/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { doc, writeBatch, collection } from 'firebase/firestore';
+import LoadingSpinner from '@/app/ui/dashboard/loading-spinner';
 
 function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
     return (
-        <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-blue-300">
-            {isSubmitting ? 'Saving...' : 'Continue to Dashboard'}
+        <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex h-10 w-full items-center justify-center rounded-lg bg-gray-900 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        >
+            {isSubmitting ? (
+                <>
+                    <LoadingSpinner className="mr-2" />
+                    <span>Saving...</span>
+                </>
+            ) : 'Continue to Dashboard'}
         </button>
     );
 }
@@ -26,7 +36,6 @@ export default function CompleteProfilePage() {
             if (currentUser) {
                 setUser(currentUser);
             } else {
-                // This page is protected; if no user, send them back to login.
                 router.push('/login');
             }
         });
@@ -82,18 +91,22 @@ export default function CompleteProfilePage() {
     };
 
     if (!user) {
-        return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+        return (
+            <div className="flex min-h-screen items-center justify-center gap-2 text-gray-800 dark:text-zinc-200">
+                <LoadingSpinner /> Loading...
+            </div>
+        );
     }
 
     return (
-        <main className="flex items-center justify-center min-h-screen ">
+        <main className="flex min-h-screen items-center justify-center bg-white dark:bg-zinc-950">
             <div className="relative mx-auto flex w-full max-w-sm flex-col space-y-4 p-4">
                 <div className="text-center">
-                    <h1 className="mt-2 text-2xl font-semibold">One Last Step!</h1>
-                    <p className="mt-1 text-gray-500">What should we call your workspace?</p>
+                    <h1 className="mt-2 text-2xl font-semibold text-gray-900 dark:text-zinc-100">One Last Step!</h1>
+                    <p className="mt-1 text-gray-500 dark:text-zinc-400">What should we call your workspace?</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-3">
+                <form onSubmit={handleSubmit} className="space-y-3 pt-4">
                     <div className="w-full">
                         <label htmlFor="organizationName" className="sr-only">Organization Name</label>
                         <input
@@ -102,9 +115,9 @@ export default function CompleteProfilePage() {
                             id="organizationName"
                             required
                             placeholder="e.g., My Awesome Workshop"
-                            className="block w-full rounded-md border border-gray-300 py-2 px-3 text-sm"
+                            className="block w-full rounded-md border border-gray-300 bg-gray-50 py-2 px-3 text-sm text-gray-900 placeholder:text-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                         />
-                        {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+                        {error && <p className="mt-2 text-center text-xs text-red-600 dark:text-red-500">{error}</p>}
                     </div>
                     <SubmitButton isSubmitting={isSubmitting} />
                 </form>

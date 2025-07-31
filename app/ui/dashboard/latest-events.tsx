@@ -25,27 +25,30 @@ export default async function LatestEvents() {
 
                             return (
                                 <div key={event.docId} className="flex flex-row items-center justify-between py-4">
+                                    {/* Left side: Event Info */}
                                     <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <p className="truncate text-sm font-medium text-gray-900 dark:text-zinc-100 md:text-base">{event.title}</p>
-                                            {isOwner ? (
-                                                <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-900/50 dark:text-amber-300 dark:ring-amber-400/20">
-                                                    Owner
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-900/50 dark:text-blue-300 dark:ring-blue-400/20">
-                                                    Admin
-                                                </span>
-                                            )}
-                                        </div>
+                                        <p className="truncate text-sm font-medium text-gray-900 dark:text-zinc-100 md:text-base">{event.title}</p>
                                         <p className="hidden truncate text-sm text-gray-500 sm:block dark:text-zinc-400">{event.description || 'No description'}</p>
                                     </div>
-                                    <Link
-                                        href={`/dashboard/events/${event.docId}`}
-                                        className="ml-4 flex-shrink-0 rounded-md border border-gray-300 p-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                                    >
-                                        Manage
-                                    </Link>
+
+                                    {/* Right side: Status Badge and Action Button */}
+                                    <div className="ml-4 flex flex-shrink-0 items-center gap-4">
+                                        {isOwner ? (
+                                            <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-900/50 dark:text-amber-300 dark:ring-amber-400/20">
+                                                Owner
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-900/50 dark:text-blue-300 dark:ring-blue-400/20">
+                                                Admin
+                                            </span>
+                                        )}
+                                        <Link
+                                            href={`/dashboard/events/${event.docId}`}
+                                            className="rounded-md border border-gray-300 p-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                        >
+                                            Manage
+                                        </Link>
+                                    </div>
                                 </div>
                             );
                         })}

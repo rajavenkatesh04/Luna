@@ -1,4 +1,3 @@
-// app/ui/google-signin-button.tsx
 'use client';
 
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
@@ -8,9 +7,9 @@ import { doc, getDoc, collection, query, where, getDocs, writeBatch } from "fire
 import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
 
-// Google Icon SVG component
+// Google Icon SVG component - no changes needed here
 const GoogleIcon = () => (
-    <svg className="w-5 h-5" viewBox="0 0 48 48">
+    <svg className="h-5 w-5" viewBox="0 0 48 48">
         <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
         <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
         <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
@@ -77,7 +76,7 @@ export default function GoogleSignInButton() {
                 await batch.commit();
                 router.push('/dashboard');
             }
-        } catch (error: unknown) { // This fixes the ESLint error
+        } catch (error: unknown) {
             if (typeof error === 'object' && error !== null && 'code' in error) {
                 const firebaseError = error as { code: string };
                 if (firebaseError.code === 'auth/account-exists-with-different-credential') {
@@ -98,23 +97,21 @@ export default function GoogleSignInButton() {
             <button
                 onClick={handleSignIn}
                 disabled={isLoading}
-                className="flex w-full items-center justify-center gap-3 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-3 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
                 {isLoading ? (
-                    // This content shows ONLY when loading
                     <>
                         <LoadingSpinner className="mr-2 h-5 w-5" />
                         <span>Signing In...</span>
                     </>
                 ) : (
-                    // This content shows in the default state
                     <>
                         <GoogleIcon />
                         <span>Sign in with Google</span>
                     </>
                 )}
             </button>
-            {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-2 text-center text-xs text-red-600 dark:text-red-500">{error}</p>}
         </div>
     );
 }

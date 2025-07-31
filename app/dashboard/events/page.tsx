@@ -22,19 +22,22 @@ async function EventsList() {
                             key={event.docId}
                             className="block rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
                         >
-                            <div className="mb-2 flex items-center gap-3">
-                                <h3 className="bg-gradient-to-r from-zinc-400 to-zinc-100 bg-clip-text text-xl font-medium text-transparent">
+                            <div className="mb-2 flex items-center justify-between">
+                                <h3 className="min-w-0 truncate bg-gradient-to-r from-zinc-400 to-zinc-100 bg-clip-text text-xl font-medium text-transparent">
                                     {event.title}
                                 </h3>
-                                {isOwner ? (
-                                    <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-900/50 dark:text-amber-300 dark:ring-amber-400/20">
-                                        Owner
-                                    </span>
-                                ) : (
-                                    <span className="inline-flex items-center rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-900/50 dark:text-blue-300 dark:ring-blue-400/20">
-                                        Admin
-                                    </span>
-                                )}
+
+                                <div className="ml-4 flex-shrink-0">
+                                    {isOwner ? (
+                                        <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-900/50 dark:text-amber-300 dark:ring-amber-400/20">
+                                            Owner
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-900/50 dark:text-blue-300 dark:ring-blue-400/20">
+                                            Admin
+                                        </span>
+                                    )}
+                                </div>
                             </div>
 
                             <p className="truncate text-gray-600 dark:text-zinc-400">{event.description || 'No description'}</p>

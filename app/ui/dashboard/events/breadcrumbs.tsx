@@ -1,5 +1,6 @@
 import { clsx } from 'clsx';
 import Link from 'next/link';
+import { ChevronRightIcon } from '@heroicons/react/24/outline';
 
 interface Breadcrumb {
     label: string;
@@ -13,22 +14,29 @@ export default function Breadcrumbs({
     breadcrumbs: Breadcrumb[];
 }) {
     return (
-        <nav aria-label="Breadcrumb" className="mb-6 block">
-            <ol className={clsx('flex text-xl md:text-2xl')}>
+        <nav aria-label="Breadcrumb" className="mb-4 block">
+            <ol className="flex items-center space-x-2 text-sm">
                 {breadcrumbs.map((breadcrumb, index) => (
                     <li
                         key={breadcrumb.href}
                         aria-current={breadcrumb.active}
-                        className={clsx(
-                            'font-medium',
-                            breadcrumb.active
-                                ? 'text-gray-900 dark:text-zinc-100'
-                                : 'text-gray-500 dark:text-zinc-400',
-                        )}
+                        className="flex items-center"
                     >
-                        <Link href={breadcrumb.href}>{breadcrumb.label}</Link>
+                        <Link
+                            href={breadcrumb.href}
+                            className={clsx(
+                                'transition-colors hover:text-gray-900 dark:hover:text-zinc-100',
+                                breadcrumb.active
+                                    ? 'font-medium text-gray-800 dark:text-zinc-200'
+                                    // Make inactive links slightly more muted
+                                    : 'text-gray-500 dark:text-zinc-400',
+                            )}
+                        >
+                            {breadcrumb.label}
+                        </Link>
+
                         {index < breadcrumbs.length - 1 ? (
-                            <span className="mx-3 inline-block text-gray-400 dark:text-zinc-600">/</span>
+                            <ChevronRightIcon className="ml-2 h-4 w-4 text-gray-400 dark:text-zinc-600" />
                         ) : null}
                     </li>
                 ))}
