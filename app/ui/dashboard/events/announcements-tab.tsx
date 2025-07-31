@@ -6,17 +6,17 @@ import { createAnnouncement, CreateAnnouncementState, deleteAnnouncement } from 
 import { db } from '@/app/lib/firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { Announcement } from '@/app/lib/definitions';
-import { UserCircleIcon, CalendarIcon, TrashIcon  } from '@heroicons/react/24/outline';
+import { UserCircleIcon, CalendarIcon, TrashIcon ,BookmarkIcon } from '@heroicons/react/24/outline';
 import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
 
-// No changes to SubmitButton
+// SubmitButton
 function SubmitButton() {
     const { pending } = useFormStatus();
     return (
         <button
             type="submit"
             disabled={pending}
-            className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
+            className="w-full md:w-max flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
             aria-disabled={pending}
         >
             {pending ? (
@@ -28,6 +28,19 @@ function SubmitButton() {
                 <span>Send Announcement</span>
             )}
         </button>
+    );
+}
+
+// slideswitch for pinning announcements
+function SlideSwitch() {
+    return (
+        <label htmlFor="isPinned" className="flex cursor-pointer items-center justify-between">
+            <span className="mr-3 text-sm font-medium ">Pin Announcement</span>
+            <div className="relative">
+                <input type="checkbox" id="isPinned" name="isPinned" className="peer sr-only" />
+                <div className="h-6 w-11 rounded-full bg-blue-600 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:bg-green-500 peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+            </div>
+        </label>
     );
 }
 
@@ -83,7 +96,7 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
         <div>
             {/* Create Announcement Form */}
             <form action={dispatch} ref={formRef} className="p-4 rounded-lg border">
-                <h3 className="mb-2">Create New Announcement</h3>
+                <h3 className="mb-2 tracking-wide">Create New Announcement</h3>
                 <input type="hidden" name="eventId" value={eventId} />
                 <input type="hidden" name="organizationId" value={orgId} />
                 <div className="mb-2">
@@ -96,7 +109,8 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
                     <textarea name="content" id="content" required rows={3} placeholder="Write your update here..." className="block w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
                     {state.errors?.content && <p className="mt-1 text-xs text-red-500">{state.errors.content}</p>}
                 </div>
-                <div className="flex justify-end">
+                <div className="md:flex space-y-2 items-center justify-between mt-4">
+                    <SlideSwitch />
                     <SubmitButton />
                 </div>
             </form>
@@ -114,7 +128,16 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
                                 {/* Flex container to put content and button side-by-side */}
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1 pr-4">
-                                        <h3 className="font-semibold">{ann.title}</h3>
+                                        <div className={`flex gap-2 items-center`}>
+                                            {/*  CONDITIONAL RENDERING LOGIC  */}
+                                            {ann.isPinned && (
+                                                <BookmarkIcon
+                                                    className="h-5 w-5"
+                                                    title="Pinned Announcement"
+                                                />
+                                            )}
+                                            <h3 className="">{ann.title}</h3>
+                                        </div>
                                         <p className="mt-1 text-sm text-gray-600 whitespace-pre-wrap">{ann.content}</p>
                                     </div>
 

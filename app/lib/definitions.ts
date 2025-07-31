@@ -50,4 +50,3 @@ export interface Poll {
     creatorUid: string;
     timeStamp: Date;
 }
-

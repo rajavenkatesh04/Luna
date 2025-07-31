@@ -202,6 +202,7 @@ const CreateAnnouncementSchema = z.object({
     content: z.string().min(1, { message: "Content is required." }),
     eventId: z.string(),
     organizationId: z.string(),
+    isPinned: z.preprocess((value) => value === 'on', z.boolean()),
 });
 
 export async function createAnnouncement(prevState: CreateAnnouncementState, formData: FormData): Promise<CreateAnnouncementState> {
@@ -215,13 +216,14 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
         content: formData.get('content'),
         eventId: formData.get('eventId'),
         organizationId: formData.get('organizationId'),
+        isPinned: formData.get('isPinned'),
     });
 
     if (!validatedFields.success) {
         return { errors: validatedFields.error.flatten().fieldErrors, message: 'Missing or invalid fields.' };
     }
 
-    const { title: announcementTitle, content, eventId, organizationId } = validatedFields.data;
+    const { title: announcementTitle, content, eventId, organizationId, isPinned } = validatedFields.data;
 
     try {
 
@@ -233,7 +235,7 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
         }
         const eventTitle = eventSnap.data()!.title || 'Event Update';
 
-        // The rest of your logic is great!
+
         const announcementRef = eventRef.collection('announcements').doc();
         await announcementRef.set({
             id: announcementRef.id,
@@ -241,6 +243,7 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
             authorId: session.uid,
             title: announcementTitle,
             content: content,
+            isPinned: isPinned,
             createdAt: Timestamp.now(),
         });
 

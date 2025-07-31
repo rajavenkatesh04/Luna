@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { db } from '@/app/lib/firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { Announcement, Event } from '@/app/lib/definitions';
-import { UserCircleIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { UserCircleIcon, CalendarIcon, BookmarkIcon } from '@heroicons/react/24/outline';
 import Navbar from "@/app/ui/Navbar";
 import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
 import NotificationButton from "@/app/ui/NotificationButton";
@@ -102,7 +102,16 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                     {announcements.length > 0 ? (
                         announcements.map(ann => (
                             <div key={ann.id} className="p-5  border rounded-lg shadow-sm animate-fade-in">
-                                <p className=" tracking-wide text-lg  ">{ann.title}</p>
+                                <div className={`flex gap-2 items-center`}>
+                                    {/*  CONDITIONAL RENDERING LOGIC  */}
+                                    {ann.isPinned && (
+                                        <BookmarkIcon
+                                            className="h-5 w-5 "
+                                            title="Pinned Announcement"
+                                        />
+                                    )}
+                                    <p className=" tracking-wide text-lg  ">{ann.title}</p>
+                                </div>
                                 <p className="mt-1 text-gray-500 whitespace-pre-wrap">{ann.content}</p>
                                 <div className="flex items-center gap-4 text-xs text-gray-500 mt-4 pt-3 border-t">
                                     <span className="flex items-center gap-1.5"><UserCircleIcon className="w-4 h-4" /> {ann.authorName}</span>
