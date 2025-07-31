@@ -8,7 +8,7 @@ import { sendInvite } from '@/app/lib/actions';
 function InviteButton() {
     const { pending } = useFormStatus();
     return (
-        <button type="submit" disabled={pending} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50">
+        <button type="submit" disabled={pending} className="w-full md:w-max rounded-md bg-blue-600 px-4 py-2 text-sm  text-white shadow-sm hover:bg-blue-500 disabled:opacity-50">
             {pending ? 'Sending...' : 'Send Invite'}
         </button>
     );

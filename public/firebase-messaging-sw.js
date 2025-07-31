@@ -18,3 +18,13 @@ if (!firebase.apps.length) {
 // but you don't need the onBackgroundMessage handler if you're only
 // using the 'notification' payload. The SDK handles it.
 const messaging = firebase.messaging();
+
+self.addEventListener('notificationclick', (event) => {
+    // Close the notification
+    event.notification.close();
+
+    // Get the URL from the data payload and open it
+    if (event.notification.data && event.notification.data.url) {
+        event.waitUntil(clients.openWindow(event.notification.data.url));
+    }
+});

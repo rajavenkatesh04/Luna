@@ -4,18 +4,22 @@ import { useEffect, useState } from 'react';
 import { db } from '@/app/lib/firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { Announcement, Event } from '@/app/lib/definitions';
-import { UserCircleIcon, CalendarIcon, BookmarkIcon } from '@heroicons/react/24/outline';
+import { UserCircleIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { BookmarkIcon } from '@heroicons/react/24/solid'; // Using solid icon for better visibility
 import Navbar from "@/app/ui/Navbar";
 import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
 import NotificationButton from "@/app/ui/NotificationButton";
 
-// This is a helper function to fetch the initial event data.
-// In a real app, you might use a library like SWR or React Query for this.
+// Helper function to fetch the initial event data
 async function getInitialEventData(eventCode: string) {
-    // This is a client-side fetch to a simple API route we will create.
-    const response = await fetch(`/api/events/${eventCode}`);
-    if (!response.ok) return null;
-    return response.json();
+    try {
+        const response = await fetch(`/api/events/${eventCode}`);
+        if (!response.ok) return null;
+        return response.json();
+    } catch (error) {
+        console.error("Failed to fetch initial event data:", error);
+        return null;
+    }
 }
 
 export default function PublicEventPage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,25 +30,33 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
     const [eventId, setEventId] = useState<string | null>(null);
 
     useEffect(() => {
-        // First resolve the params
-        params.then(resolvedParams => {
-            setEventId(resolvedParams.id);
+        let unsubscribe = () => {};
 
-            // Fetch the initial event details
-            return getInitialEventData(resolvedParams.id);
+        params.then(resolvedParams => {
+            const currentEventId = resolvedParams.id;
+            setEventId(currentEventId);
+            return getInitialEventData(currentEventId);
         }).then(data => {
             if (data && data.eventData && data.eventPath) {
                 setEvent(data.eventData);
 
                 // --- THE LIVE FEED ---
-                // Once we have the event path, we set up the real-time listener
                 const announcementsQuery = query(
                     collection(db, `${data.eventPath}/announcements`),
                     orderBy('createdAt', 'desc')
                 );
 
-                const unsubscribe = onSnapshot(announcementsQuery, (querySnapshot) => {
+                unsubscribe = onSnapshot(announcementsQuery, (querySnapshot) => {
                     const announcementsData = querySnapshot.docs.map(doc => doc.data() as Announcement);
+
+                    // Sort announcements: pinned items first, then by date
+                    announcementsData.sort((a, b) => {
+                        if (a.isPinned && !b.isPinned) return -1;
+                        if (!a.isPinned && b.isPinned) return 1;
+                        // For items with the same pinned status, sort by date
+                        return b.createdAt.seconds - a.createdAt.seconds;
+                    });
+
                     setAnnouncements(announcementsData);
                     setIsLoading(false);
                 }, (err) => {
@@ -53,7 +65,6 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                     setIsLoading(false);
                 });
 
-                return () => unsubscribe(); // Cleanup listener
             } else {
                 setError("Event not found.");
                 setIsLoading(false);
@@ -63,17 +74,21 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
             setError("Could not load event.");
             setIsLoading(false);
         });
+
+        // Cleanup listener on component unmount
+        return () => unsubscribe();
     }, [params]);
 
     if (isLoading) {
-        return <div className="flex items-center justify-center min-h-screen">
-            <LoadingSpinner className="mr-2" />
-            Loading Event...
-        </div>;
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <LoadingSpinner className="mr-2" />
+                Loading Event...
+            </div>
+        );
     }
 
     if (error) {
-        // A simple not-found-like page for errors
         return (
             <main className="flex items-center justify-center min-h-screen text-center">
                 <div>
@@ -91,8 +106,6 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                 <header className="text-center mb-8">
                     <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-teal-400">{event?.title}</h1>
                     <p className="mt-2 text-lg text-gray-600">{event?.description}</p>
-
-                    {/* Notification Button */}
                     <div className="mt-6 flex justify-center">
                         {eventId && <NotificationButton eventId={eventId} />}
                     </div>
@@ -102,17 +115,16 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                     {announcements.length > 0 ? (
                         announcements.map(ann => (
                             <div key={ann.id} className="p-5  border rounded-lg shadow-sm animate-fade-in">
-                                <div className={`flex gap-2 items-center`}>
-                                    {/*  CONDITIONAL RENDERING LOGIC  */}
+                                <div className="flex items-center gap-2">
                                     {ann.isPinned && (
                                         <BookmarkIcon
-                                            className="h-5 w-5 "
+                                            className="h-5 w-5 text-blue-600"
                                             title="Pinned Announcement"
                                         />
                                     )}
-                                    <p className=" tracking-wide text-lg  ">{ann.title}</p>
+                                    <h2 className="text-lg ">{ann.title}</h2>
                                 </div>
-                                <p className="mt-1 text-gray-500 whitespace-pre-wrap">{ann.content}</p>
+                                <p className="mt-2  whitespace-pre-wrap">{ann.content}</p>
                                 <div className="flex items-center gap-4 text-xs text-gray-500 mt-4 pt-3 border-t">
                                     <span className="flex items-center gap-1.5"><UserCircleIcon className="w-4 h-4" /> {ann.authorName}</span>
                                     <span className="flex items-center gap-1.5"><CalendarIcon className="w-4 h-4" /> {new Date(ann.createdAt.seconds * 1000).toLocaleString()}</span>
@@ -120,10 +132,8 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                             </div>
                         ))
                     ) : (
-                        <div className="text-center  py-12">
-                            <p>No announcements yet.
-                                <br />
-                                Stay tuned for updates!</p>
+                        <div className="text-center text-gray-500 py-12">
+                            <p>No announcements yet. <br /> Stay tuned for updates!</p>
                         </div>
                     )}
                 </div>

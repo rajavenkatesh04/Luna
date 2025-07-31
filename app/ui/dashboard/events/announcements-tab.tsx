@@ -6,7 +6,8 @@ import { createAnnouncement, CreateAnnouncementState, deleteAnnouncement } from 
 import { db } from '@/app/lib/firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { Announcement } from '@/app/lib/definitions';
-import { UserCircleIcon, CalendarIcon, TrashIcon ,BookmarkIcon } from '@heroicons/react/24/outline';
+import { UserCircleIcon, CalendarIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { BookmarkIcon } from '@heroicons/react/24/solid';
 import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
 
 // SubmitButton
@@ -95,7 +96,7 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
     return (
         <div>
             {/* Create Announcement Form */}
-            <form action={dispatch} ref={formRef} className="p-4 rounded-lg border">
+            <form action={dispatch} ref={formRef} className="p-4 rounded-lg border border-blue-600">
                 <h3 className="mb-2 tracking-wide">Create New Announcement</h3>
                 <input type="hidden" name="eventId" value={eventId} />
                 <input type="hidden" name="organizationId" value={orgId} />
@@ -132,7 +133,7 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
                                             {/*  CONDITIONAL RENDERING LOGIC  */}
                                             {ann.isPinned && (
                                                 <BookmarkIcon
-                                                    className="h-5 w-5"
+                                                    className="h-5 w-5 text-blue-600"
                                                     title="Pinned Announcement"
                                                 />
                                             )}

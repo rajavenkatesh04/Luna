@@ -254,6 +254,11 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
             notification: {
                 title: eventTitle,
                 body: announcementTitle,
+                color: '#007bff'
+            },
+
+            data: {
+                url: `${baseUrl}/e/${eventId}`
             },
             webpush: {
                 headers: { Urgency: 'high' },

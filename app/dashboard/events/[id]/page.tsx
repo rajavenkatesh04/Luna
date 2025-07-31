@@ -74,7 +74,7 @@ export default async function Page({ params, searchParams }: PageProps) {
                     <div className="flex flex-wrap items-center gap-2">
                         <div className="flex items-center gap-2 p-2 border rounded-md text-sm">
                             <UsersIcon className="h-5 w-5 text-gray-400" />
-                            <span className="font-medium">{subscriberCount}</span>
+                            <span className="font-medium text-blue-500">{subscriberCount}</span>
                             <span className="text-gray-400">Subscribers</span>
                         </div>
                         <Link href={`/e/${event.id}`} target="_blank" className="flex items-center gap-2 px-4 py-2 text-sm  border rounded-md shadow-sm hover:bg-gray-500">
