@@ -1,48 +1,41 @@
+// app/dashboard/events/[id]/page.tsx
+
+import { Suspense } from 'react';
 import { auth } from '@/app/lib/firebase-admin';
-import { fetchEventById, fetchUserProfile, fetchUsersByUid, fetchSubscriberCount  } from '@/app/lib/data';
+import { fetchEventById, fetchUserProfile, fetchUsersByUid, fetchSubscriberCount } from '@/app/lib/data';
 import { notFound } from 'next/navigation';
 import Breadcrumbs from '@/app/ui/dashboard/events/breadcrumbs';
 import Link from 'next/link';
-import { EyeIcon, PencilIcon, UsersIcon  } from '@heroicons/react/24/outline';
+import { EyeIcon, PencilIcon, UsersIcon } from '@heroicons/react/24/outline';
 import AnnouncementsTab from '@/app/ui/dashboard/events/announcements-tab';
 import AdminsTab from '@/app/ui/dashboard/events/admins-tab';
 import SettingsTab from '@/app/ui/dashboard/events/settings-tab';
 import clsx from 'clsx';
 import QrCodeDisplay from "@/app/ui/dashboard/events/qr-code-display";
-
+import { EventDetailsPageSkeleton } from '@/app/ui/skeletons';
 
 type PageProps = {
     params: Promise<{ id: string }>;
     searchParams?: Promise<{ tab?: string }>;
 };
 
-export default async function Page({ params, searchParams }: PageProps) {
-
-    // Await the props to get their resolved values
+async function EventDetails({ params, searchParams }: PageProps) {
+    // Await params and searchParams before using them
     const { id: eventId } = await params;
     const resolvedSearchParams = await searchParams;
+    const activeTab = resolvedSearchParams?.tab || 'announcements';
 
     const session = await auth.getSession();
-    if (!session) {
-        notFound();
-    }
+    if (!session) notFound();
 
-    // Fetch primary data
     const [event, userProfile, subscriberCount] = await Promise.all([
         fetchEventById(session.uid, eventId),
         fetchUserProfile(session.uid),
         fetchSubscriberCount(session.uid, eventId)
     ]);
 
+    if (!event || !userProfile) notFound();
 
-    if (!event || !userProfile) {
-        notFound();
-    }
-
-    // Determine the active tab from the resolved searchParams
-    const activeTab = resolvedSearchParams?.tab || 'announcements';
-
-    // Fetch the full profiles for the admins of this event
     const adminUsers = await fetchUsersByUid(event.admins);
 
     return (
@@ -58,53 +51,42 @@ export default async function Page({ params, searchParams }: PageProps) {
                 ]}
             />
 
-            {/* Header Section start */}
-            <div className="mb-8">
-                {/* 1. Main container: Adjusted alignment for medium screens */}
+            <div className="mb-8 mt-4">
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-
-                    {/* Left side: Title and mobile description */}
                     <div className="flex-1">
-                        <h1 className="text-3xl truncate">{event.title}</h1>
-                        <p className="md:hidden mt-1 text-gray-500">{event.description}</p>
+                        <h1 className="truncate text-3xl font-semibold text-gray-900 dark:text-zinc-100">{event.title}</h1>
+                        <p className="mt-1 text-gray-500 dark:text-zinc-400 md:hidden">{event.description}</p>
                     </div>
-
-                    {/* Right side: Button group */}
-                    {/* 2. Button container: Added 'flex-wrap' to allow buttons to wrap on small screens */}
                     <div className="flex flex-wrap items-center gap-2">
-                        <div className="flex items-center gap-2 p-2 border rounded-md text-sm">
-                            <UsersIcon className="h-5 w-5 text-gray-400" />
+                        <div className="flex items-center gap-2 rounded-md border border-gray-200 p-2 text-sm dark:border-zinc-800 dark:bg-zinc-900">
+                            <UsersIcon className="h-5 w-5 text-gray-400 dark:text-zinc-500" />
                             <span className="font-medium text-blue-500">{subscriberCount}</span>
-                            <span className="text-gray-400">Subscribers</span>
+                            <span className="text-gray-500 dark:text-zinc-400">Subscribers</span>
                         </div>
-                        <Link href={`/e/${event.id}`} target="_blank" className="flex items-center gap-2 px-4 py-2 text-sm  border rounded-md shadow-sm hover:bg-gray-500">
+                        <Link href={`/e/${event.id}`} target="_blank" className="flex items-center gap-2 rounded-md border border-gray-200 px-4 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800">
                             <EyeIcon className="h-4 w-4" />
-                            View Public Page
+                            View
                         </Link>
                         <QrCodeDisplay eventId={event.id} />
-                        <Link href={`/dashboard/events/${event.docId}/edit`} className="flex items-center gap-2 px-4 py-2 text-sm  border border-blue-500 rounded-md shadow-sm hover:bg-blue-700">
+                        <Link href={`/dashboard/events/${event.docId}/edit`} className="flex items-center gap-2 rounded-md border border-blue-600 bg-blue-600 px-4 py-2 text-sm text-white shadow-sm hover:bg-blue-700">
                             <PencilIcon className="h-4 w-4" />
                             Edit
                         </Link>
                     </div>
                 </div>
-
-                {/* Desktop description */}
-                <p className="hidden md:block mt-2 text-gray-600">{event.description}</p>
+                <p className="hidden md:block mt-2 text-gray-600 dark:text-zinc-400">{event.description}</p>
             </div>
-            {/* End of Header Section */}
 
-            {/* Tabbed Interface */}
             <div className="w-full">
-                <div className="border-b border-gray-200">
+                <div className="border-b border-gray-200 dark:border-zinc-800">
                     <nav className="-mb-px flex space-x-8" aria-label="Tabs">
                         <Link
                             href={`/dashboard/events/${event.docId}?tab=announcements`}
                             className={clsx(
                                 "whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium",
                                 {
-                                    'border-blue-500 text-blue-600': activeTab === 'announcements',
-                                    'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700': activeTab !== 'announcements'
+                                    'border-blue-500 text-blue-600 dark:text-blue-400': activeTab === 'announcements',
+                                    'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:text-zinc-300': activeTab !== 'announcements'
                                 }
                             )}
                         >
@@ -115,8 +97,8 @@ export default async function Page({ params, searchParams }: PageProps) {
                             className={clsx(
                                 "whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium",
                                 {
-                                    'border-blue-500 text-blue-600': activeTab === 'admins',
-                                    'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700': activeTab !== 'admins'
+                                    'border-blue-500 text-blue-600 dark:text-blue-400': activeTab === 'admins',
+                                    'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:text-zinc-300': activeTab !== 'admins'
                                 }
                             )}
                         >
@@ -127,8 +109,8 @@ export default async function Page({ params, searchParams }: PageProps) {
                             className={clsx(
                                 "whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium",
                                 {
-                                    'border-blue-500 text-blue-600': activeTab === 'settings',
-                                    'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700': activeTab !== 'settings'
+                                    'border-blue-500 text-blue-600 dark:text-blue-400': activeTab === 'settings',
+                                    'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:text-zinc-300': activeTab !== 'settings'
                                 }
                             )}
                         >
@@ -137,7 +119,6 @@ export default async function Page({ params, searchParams }: PageProps) {
                     </nav>
                 </div>
 
-                {/* Conditionally render Tab Content */}
                 <div className="py-6">
                     {activeTab === 'announcements' && <AnnouncementsTab eventId={event.docId} orgId={userProfile.organizationId} />}
                     {activeTab === 'admins' && <AdminsTab eventId={event.docId} admins={adminUsers} orgId={userProfile.organizationId} ownerUid={event.ownerUid} />}
@@ -145,5 +126,13 @@ export default async function Page({ params, searchParams }: PageProps) {
                 </div>
             </div>
         </main>
+    );
+}
+
+export default function PageWithSuspense(props: PageProps) {
+    return (
+        <Suspense fallback={<EventDetailsPageSkeleton />}>
+            <EventDetails {...props} />
+        </Suspense>
     );
 }

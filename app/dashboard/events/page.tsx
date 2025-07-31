@@ -9,63 +9,66 @@ async function EventsList() {
     const session = await auth.getSession();
     if (!session) return null;
 
-    // fetchLatestEvents gets 5 events where the user is an admin or owner.
     const events = await fetchLatestEvents(session.uid);
 
     return (
-        <div className="space-y-3 py-12 rounded-lg">
+        <div className="space-y-4 py-8">
             {events.length > 0 ? (
                 events.map(event => {
-                    // Check if the current user is the owner of this specific event
                     const isOwner = event.ownerUid === session.uid;
-
                     return (
-                        <Link href={`/dashboard/events/${event.docId}`} key={event.docId} className="block border border-gray-500 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow">
-                            {/* Flex container for the title and the new badge */}
-                            <div className="flex items-center gap-3 mb-2">
-                                <h3 className="text-xl bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-orange-600">{event.title}</h3>
-
-                                {/* Conditionally render the badge based on whether the user is the owner */}
+                        <Link
+                            href={`/dashboard/events/${event.docId}`}
+                            key={event.docId}
+                            className="block rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
+                        >
+                            <div className="mb-2 flex items-center gap-3">
+                                <h3 className="bg-gradient-to-r from-zinc-400 to-zinc-100 bg-clip-text text-xl font-medium text-transparent">
+                                    {event.title}
+                                </h3>
                                 {isOwner ? (
-                                    <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                                    <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-900/50 dark:text-amber-300 dark:ring-amber-400/20">
                                         Owner
                                     </span>
                                 ) : (
-                                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                                    <span className="inline-flex items-center rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-900/50 dark:text-blue-300 dark:ring-blue-400/20">
                                         Admin
                                     </span>
                                 )}
                             </div>
 
-                            <p className="truncate">{event.description || 'No description'}</p>
-                            <div className="mt-4 pt-4 border-t border-gray-200">
-                                <p className="text-sm text-gray-500">Event ID: <span className="font-mono bg-gray-200 mx-2 px-1 py-1 rounded">{event.id}</span></p>
+                            <p className="truncate text-gray-600 dark:text-zinc-400">{event.description || 'No description'}</p>
+                            <div className="mt-4 border-t border-gray-200 pt-4 dark:border-zinc-800">
+                                <p className="text-sm text-gray-500 dark:text-zinc-500">
+                                    Event ID: <span className="mx-2 rounded bg-gray-100 px-2 py-1 font-mono text-gray-600 dark:bg-zinc-800 dark:text-zinc-300">{event.id}</span>
+                                </p>
                             </div>
                         </Link>
                     );
                 })
             ) : (
-                <div className="md:col-span-3 text-center py-12 border border-gray-700 rounded-lg shadow-md">
-                    <h3 className="text-xl font-semibold">No events yet!</h3>
-                    <p className="text-gray-500 mt-2">Click the <span className={`text-blue-600 font-semibold px-2 `}>+ Create Event</span> button to get started.</p>
+                <div className="rounded-lg border border-dashed border-gray-300 bg-white py-12 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-zinc-100">No events yet!</h3>
+                    <p className="mt-2 text-gray-500 dark:text-zinc-400">
+                        Click the <span className="font-semibold text-gray-800 dark:text-zinc-100">+ Create Event</span> button to get started.
+                    </p>
                 </div>
             )}
         </div>
     );
 }
 
-
 export default function Page() {
     return (
         <main>
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl">Events</h1>
+            <div className="mb-8 flex items-center justify-between">
+                <h1 className="text-3xl font-semibold text-gray-900 dark:text-zinc-100">Events</h1>
                 <Link
                     href="/dashboard/events/create"
-                    className="flex h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 active:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50">
-                    <span className="mr-2">+</span> Create Event
+                    className="flex h-10 items-center rounded-lg bg-gray-900 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                >
+                    <span className="mr-2 text-lg font-bold">+</span> Create Event
                 </Link>
-
             </div>
             <Suspense fallback={<EventsListSkeleton />}>
                 <EventsList />

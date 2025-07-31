@@ -69,20 +69,19 @@ export default function NotificationButton({ eventId }: { eventId: string }) {
             }
         } catch (error) {
             console.error('An error occurred while subscribing to notifications: ', error);
-            // Revert to default state if subscription fails
             setStatus('default');
         }
     };
 
     // Render the appropriate status badge if the user can't subscribe
     if (status === 'subscribed') {
-        return <StatusBadge icon={CheckCircleIcon} message="You are subscribed to notifications." className="bg-green-100 text-green-800" />;
+        return <StatusBadge icon={CheckCircleIcon} message="You are subscribed to notifications." className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" />;
     }
     if (status === 'denied') {
-        return <StatusBadge icon={ExclamationTriangleIcon} message="Notification permissions are blocked." className="bg-yellow-100 text-yellow-800" />;
+        return <StatusBadge icon={ExclamationTriangleIcon} message="Notification permissions are blocked." className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300" />;
     }
     if (status === 'unsupported') {
-        return <StatusBadge icon={XCircleIcon} message="Notifications are not supported on this browser." className="bg-red-100 text-red-800" />;
+        return <StatusBadge icon={XCircleIcon} message="Notifications are not supported on this browser." className="bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300" />;
     }
 
     // By default, render the subscription button
@@ -90,7 +89,7 @@ export default function NotificationButton({ eventId }: { eventId: string }) {
         <button
             onClick={handleSubscribe}
             disabled={status === 'loading'}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400 dark:disabled:bg-zinc-700"
         >
             {status === 'loading' ? (
                 <LoadingSpinner className="mr-2" />

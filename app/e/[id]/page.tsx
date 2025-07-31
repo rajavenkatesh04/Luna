@@ -5,12 +5,13 @@ import { db } from '@/app/lib/firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { Announcement, Event } from '@/app/lib/definitions';
 import { UserCircleIcon, CalendarIcon } from '@heroicons/react/24/outline';
-import { BookmarkIcon } from '@heroicons/react/24/solid'; // Using solid icon for better visibility
+import { BookmarkIcon } from '@heroicons/react/24/solid';
 import Navbar from "@/app/ui/Navbar";
 import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
 import NotificationButton from "@/app/ui/NotificationButton";
+import { AnnouncementsFeedSkeleton } from '@/app/ui/skeletons';
 
-// Helper function to fetch the initial event data
+// Helper function remains the same
 async function getInitialEventData(eventCode: string) {
     try {
         const response = await fetch(`/api/events/${eventCode}`);
@@ -26,6 +27,7 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
     const [event, setEvent] = useState<Event | null>(null);
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isFeedLoading, setIsFeedLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [eventId, setEventId] = useState<string | null>(null);
 
@@ -39,8 +41,8 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
         }).then(data => {
             if (data && data.eventData && data.eventPath) {
                 setEvent(data.eventData);
+                setIsLoading(false);
 
-                // --- THE LIVE FEED ---
                 const announcementsQuery = query(
                     collection(db, `${data.eventPath}/announcements`),
                     orderBy('createdAt', 'desc')
@@ -48,23 +50,19 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
 
                 unsubscribe = onSnapshot(announcementsQuery, (querySnapshot) => {
                     const announcementsData = querySnapshot.docs.map(doc => doc.data() as Announcement);
-
-                    // Sort announcements: pinned items first, then by date
                     announcementsData.sort((a, b) => {
                         if (a.isPinned && !b.isPinned) return -1;
                         if (!a.isPinned && b.isPinned) return 1;
-                        // For items with the same pinned status, sort by date
                         return b.createdAt.seconds - a.createdAt.seconds;
                     });
 
                     setAnnouncements(announcementsData);
-                    setIsLoading(false);
+                    setIsFeedLoading(false);
                 }, (err) => {
                     console.error("Snapshot error:", err);
                     setError("Could not load announcements.");
-                    setIsLoading(false);
+                    setIsFeedLoading(false);
                 });
-
             } else {
                 setError("Event not found.");
                 setIsLoading(false);
@@ -75,65 +73,72 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
             setIsLoading(false);
         });
 
-        // Cleanup listener on component unmount
         return () => unsubscribe();
     }, [params]);
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <LoadingSpinner className="mr-2" />
-                Loading Event...
+            <div className="flex min-h-screen items-center justify-center gap-2 text-gray-800 dark:text-zinc-200">
+                <LoadingSpinner /> Loading Event...
             </div>
         );
     }
 
     if (error) {
         return (
-            <main className="flex items-center justify-center min-h-screen text-center">
+            <main className="flex min-h-screen items-center justify-center text-center">
                 <div>
-                    <h1 className="text-2xl font-bold">Event Not Found</h1>
-                    <p>The event code is invalid or the event has ended.</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">Event Not Found</h1>
+                    <p className="text-gray-600 dark:text-zinc-400">The event code is invalid or the event has ended.</p>
                 </div>
             </main>
         );
     }
 
     return (
-        <main className="min-h-screen">
+        <main className="min-h-screen bg-gray-50 dark:bg-zinc-900">
             <Navbar />
-            <div className="max-w-2xl mx-auto p-4 md:p-8">
-                <header className="text-center mb-8">
-                    <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-teal-400">{event?.title}</h1>
-                    <p className="mt-2 text-lg text-gray-600">{event?.description}</p>
+            <div className="mx-auto max-w-2xl p-4 md:p-8">
+                <header className="mb-8 text-center">
+                    <h1 className="bg-gradient-to-r from-zinc-300 via-zinc-100 to-zinc-300 bg-clip-text text-4xl font-bold text-transparent">
+                        {event?.title}
+                    </h1>
+                    <p className="mt-2 text-lg text-gray-600 dark:text-zinc-300">{event?.description}</p>
                     <div className="mt-6 flex justify-center">
                         {eventId && <NotificationButton eventId={eventId} />}
                     </div>
                 </header>
 
                 <div className="space-y-4">
-                    {announcements.length > 0 ? (
+                    {isFeedLoading ? (
+                        <AnnouncementsFeedSkeleton />
+                    ) : announcements.length > 0 ? (
                         announcements.map(ann => (
-                            <div key={ann.id} className="p-5  border rounded-lg shadow-sm animate-fade-in">
+                            <div key={ann.id} className="animate-fade-in rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                                 <div className="flex items-center gap-2">
                                     {ann.isPinned && (
                                         <BookmarkIcon
-                                            className="h-5 w-5 text-blue-600"
+                                            className="h-5 w-5 text-amber-500"
                                             title="Pinned Announcement"
                                         />
                                     )}
-                                    <h2 className="text-lg ">{ann.title}</h2>
+                                    <h2 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">{ann.title}</h2>
                                 </div>
-                                <p className="mt-2  whitespace-pre-wrap">{ann.content}</p>
-                                <div className="flex items-center gap-4 text-xs text-gray-500 mt-4 pt-3 border-t">
-                                    <span className="flex items-center gap-1.5"><UserCircleIcon className="w-4 h-4" /> {ann.authorName}</span>
-                                    <span className="flex items-center gap-1.5"><CalendarIcon className="w-4 h-4" /> {new Date(ann.createdAt.seconds * 1000).toLocaleString()}</span>
+                                <p className="mt-2 whitespace-pre-wrap text-gray-700 dark:text-zinc-300">{ann.content}</p>
+                                <div className="mt-4 flex items-center gap-4 border-t border-gray-200 pt-3 text-xs text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
+                                    <span className="flex items-center gap-1.5 font-medium"><UserCircleIcon className="w-4 h-4" /> {ann.authorName}</span>
+                                    <span className="flex items-center gap-1.5"><CalendarIcon className="w-4 h-4" />
+                                        {new Intl.DateTimeFormat('en-IN', {
+                                            dateStyle: 'medium',
+                                            timeStyle: 'short',
+                                        }).format(new Date(ann.createdAt.seconds * 1000))}
+                                    </span>
                                 </div>
                             </div>
                         ))
                     ) : (
-                        <div className="text-center text-gray-500 py-12">
-                            <p>No announcements yet. <br /> Stay tuned for updates!</p>
+                        <div className="rounded-lg border border-dashed border-gray-300 bg-white py-12 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                            <p className="text-gray-500 dark:text-zinc-400">No announcements yet. <br /> Stay tuned for updates!</p>
                         </div>
                     )}
                 </div>

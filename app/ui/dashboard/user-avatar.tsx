@@ -1,3 +1,5 @@
+// app/ui/dashboard/user-avatar.tsx
+
 'use client';
 
 import Image from 'next/image';
@@ -17,10 +19,9 @@ export default function UserAvatar({
         <Image
             src={src}
             alt={`${name}'s profile picture`}
-            className="h-10 w-10 rounded-full"
+            className="h-10 w-10 rounded-full border-2 border-gray-200 dark:border-zinc-700"
             width={40}
             height={40}
-            // The onError event is now safely handled within a Client Component
             onError={() => setSrc(fallbackSrc)}
         />
     );

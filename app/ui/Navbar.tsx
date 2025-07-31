@@ -5,52 +5,53 @@ import Link from "next/link";
 import {useState} from "react";
 
 export default function Navbar() {
-
     const [isOpen, setIsOpen] = useState(false);
-
 
     const toggleMobileMenu = () => {
         setIsOpen(!isOpen);
     };
 
+    return (
+        <nav className="sticky top-0 z-50 mx-auto max-w-7xl border-b border-gray-200 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/80">
+            <div className="flex items-center justify-between p-4 text-gray-900 dark:text-zinc-100">
+                <Link href="/">
+                    <h1 className="text-xl transition-transform duration-300 hover:scale-120 hover:bg-gradient-to-r hover:from-green-300 hover:to-emerald-600 hover:bg-clip-text hover:text-transparent">
+                        Luna.
+                    </h1>
+                </Link>
 
-
-    return(
-        <nav className={`max-w-7xl mx-auto backdrop-blur-md border-b border-gray-700 sticky top-0 z-50`}>
-            <div className={`p-4 flex justify-between items-center`}>
-                <Link href={`/`}><h1 className={`text-xl hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}>Luna.</h1></Link>
-
-
-                {/*Desktop Navbar*/}
-                <div className={`hidden md:block`}>
-                    <ul className={`flex gap-4 justify-between`}>
-                        <li className={`hover:scale-120 hover:bg-clip-text hover:text-transparent hover:bg-gradient-to-r from-green-300 to-emerald-600 transition-transform duration-300`}><Link href={`/login`}>Login</Link></li>
-                        <li><ToggleSwitch/></li>
+                {/* Desktop Navbar */}
+                <div className="hidden md:block">
+                    <ul className="flex items-center gap-6">
+                        <li className="text-sm font-medium text-gray-700 transition-transform duration-300 hover:scale-120 hover:bg-gradient-to-r hover:from-green-300 hover:to-emerald-600 hover:bg-clip-text hover:text-transparent dark:text-zinc-300">
+                            <Link href="/login">Login</Link>
+                        </li>
                     </ul>
                 </div>
 
                 {/* Hamburger Menu Button */}
-                <div className={`flex items-center justify-center space-x-4 md:hidden`}>
-                    <ToggleSwitch />
+                <div className="flex items-center justify-center space-x-4 md:hidden">
+
                     <button
                         onClick={toggleMobileMenu}
-                        className={`md:hidden flex flex-col justify-center items-center w-6 h-6 space-y-1 `}
+                        className="flex h-6 w-6 flex-col items-center justify-center space-y-1"
                         aria-label="Toggle mobile menu"
                     >
-                        {/* These three divs create the classic "hamburger" lines */}
-                        <div className={`w-5 h-0.5 bg-current transition-all duration-300 ${isOpen ? 'rotate-45 translate-y-1.5' : ''}`}></div>
-                        <div className={`w-5 h-0.5 bg-current transition-all duration-300 ${isOpen ? 'opacity-0' : ''}`}></div>
-                        <div className={`w-5 h-0.5 bg-current transition-all duration-300 ${isOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></div>
+                        <div className={`h-0.5 w-5 bg-current transition-all duration-300 ${isOpen ? 'translate-y-1.5 rotate-45' : ''}`}></div>
+                        <div className={`h-0.5 w-5 bg-current transition-all duration-300 ${isOpen ? 'opacity-0' : ''}`}></div>
+                        <div className={`h-0.5 w-5 bg-current transition-all duration-300 ${isOpen ? '-translate-y-1.5 -rotate-45' : ''}`}></div>
                     </button>
                 </div>
             </div>
 
-            {/*    Mobile Navbar*/}
-            <div className={`overflow-hidden transition-max-height duration-500 ease-in-out ${isOpen ? 'max-h-60' : 'max-h-0'} md:hidden `}>
-                <ul className={`border-t space-y-4 p-5`}>
-                    <li><Link href={`/login`} onClick={() => setIsOpen(false)}>Log In</Link></li>
+            {/* Mobile Navbar */}
+            <div className={`overflow-hidden transition-all duration-500 ease-in-out md:hidden ${isOpen ? 'max-h-60' : 'max-h-0'}`}>
+                <ul className="space-y-4 border-t border-gray-200 p-5 dark:border-zinc-800">
+                    <li className="font-medium text-gray-700 dark:text-zinc-300">
+                        <Link href="/login" onClick={() => setIsOpen(false)}>Log In</Link>
+                    </li>
                 </ul>
             </div>
         </nav>
-    )
+    );
 }
