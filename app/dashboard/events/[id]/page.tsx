@@ -6,7 +6,7 @@ import { fetchEventById, fetchUserProfile, fetchUsersByUid, fetchSubscriberCount
 import { notFound } from 'next/navigation';
 import Breadcrumbs from '@/app/ui/dashboard/events/breadcrumbs';
 import Link from 'next/link';
-import { EyeIcon, PencilIcon, UsersIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, UsersIcon } from '@heroicons/react/24/outline';
 import AnnouncementsTab from '@/app/ui/dashboard/events/announcements-tab';
 import AdminsTab from '@/app/ui/dashboard/events/admins-tab';
 import SettingsTab from '@/app/ui/dashboard/events/settings-tab';
@@ -68,10 +68,6 @@ async function EventDetails({ params, searchParams }: PageProps) {
                             View
                         </Link>
                         <QrCodeDisplay eventId={event.id} />
-                        <Link href={`/dashboard/events/${event.docId}/edit`} className="flex items-center gap-2 rounded-md border border-blue-600 bg-blue-600 px-4 py-2 text-sm text-white shadow-sm hover:bg-blue-700">
-                            <PencilIcon className="h-4 w-4" />
-                            Edit
-                        </Link>
                     </div>
                 </div>
                 <p className="hidden md:block mt-2 text-gray-600 dark:text-zinc-400">{event.description}</p>
@@ -120,7 +116,7 @@ async function EventDetails({ params, searchParams }: PageProps) {
                 </div>
 
                 <div className="py-6">
-                    {activeTab === 'announcements' && <AnnouncementsTab eventId={event.docId} orgId={userProfile.organizationId} />}
+                    {activeTab === 'announcements' && <AnnouncementsTab eventId={event.docId} orgId={event.organizationId} />}
                     {activeTab === 'admins' && <AdminsTab eventId={event.docId} admins={adminUsers} orgId={userProfile.organizationId} ownerUid={event.ownerUid} currentUserId={session.uid} />}
                     {activeTab === 'settings' && <SettingsTab eventId={event.docId} />}
                 </div>

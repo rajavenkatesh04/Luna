@@ -7,7 +7,6 @@ import { sendInvite } from '@/app/lib/actions';
 import LoadingSpinner from '@/app/ui/dashboard/loading-spinner';
 import RemoveAdminButton from './remove-admin-button';
 
-// The InviteButton component now lives inside this file
 function InviteButton() {
     const { pending } = useFormStatus();
     return (
@@ -74,11 +73,14 @@ export default function AdminsTab({
                 {/* Owner Section */}
                 {owner && (
                     <div>
-                        <h3 className="font-medium text-gray-900 dark:text-zinc-100">Event Owner</h3>
-                        <div className="mt-2 rounded-lg border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+                        <h3 className="font-medium text-gray-900 dark:text-zinc-100">Owner</h3>
+                        <div className="mt-2 rounded-lg border-2 border-amber-200 bg-amber-50 shadow-sm dark:border-amber-900 dark:bg-amber-950/20">
                             <div className="flex items-center justify-between px-6 py-4">
                                 <div>
-                                    <p className="font-medium text-gray-900 dark:text-zinc-100">{owner.displayName}</p>
+                                    <p className="font-medium text-gray-900 dark:text-zinc-100">
+                                        {owner.displayName}
+                                        {currentUserId === owner.uid && <span className="ml-2 text-xs font-normal text-gray-500 dark:text-zinc-500">(You)</span>}
+                                    </p>
                                     <p className="text-sm text-gray-500 dark:text-zinc-400">{owner.email}</p>
                                 </div>
                                 <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-900/50 dark:text-amber-300 dark:ring-amber-400/20">
@@ -98,7 +100,10 @@ export default function AdminsTab({
                                 {otherAdmins.map(admin => (
                                     <li key={admin.uid} className="flex items-center justify-between px-6 py-4">
                                         <div>
-                                            <p className="font-medium text-gray-900 dark:text-zinc-100">{admin.displayName}</p>
+                                            <p className="font-medium text-gray-900 dark:text-zinc-100">
+                                                {admin.displayName}
+                                                {currentUserId === admin.uid && <span className="ml-2 text-xs font-normal text-pink-500">(You)</span>}
+                                            </p>
                                             <p className="text-sm text-gray-500 dark:text-zinc-400">{admin.email}</p>
                                         </div>
                                         <div className="flex items-center gap-2">

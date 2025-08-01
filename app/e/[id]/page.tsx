@@ -96,11 +96,11 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
     }
 
     return (
-        <main className="min-h-screen bg-gray-50 dark:bg-zinc-900">
+        <main className="min-h-screen">
             <Navbar />
             <div className="mx-auto max-w-2xl p-4 md:p-8">
                 <header className="mb-8 text-center">
-                    <h1 className="bg-gradient-to-r from-zinc-300 via-zinc-100 to-zinc-300 bg-clip-text text-4xl font-bold text-transparent">
+                    <h1 className="bg-gradient-to-r from-zinc-300 via-zinc-100 to-zinc-300 bg-clip-text text-4xl text-transparent">
                         {event?.title}
                     </h1>
                     <p className="mt-2 text-lg text-gray-600 dark:text-zinc-300">{event?.description}</p>
@@ -122,7 +122,7 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                                             title="Pinned Announcement"
                                         />
                                     )}
-                                    <h2 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">{ann.title}</h2>
+                                    <h2 className="text-lg text-gray-900 dark:text-zinc-100">{ann.title}</h2>
                                 </div>
                                 <p className="mt-2 whitespace-pre-wrap text-gray-700 dark:text-zinc-300">{ann.content}</p>
                                 <div className="mt-4 flex items-center gap-4 border-t border-gray-200 pt-3 text-xs text-gray-500 dark:border-zinc-800 dark:text-zinc-400">

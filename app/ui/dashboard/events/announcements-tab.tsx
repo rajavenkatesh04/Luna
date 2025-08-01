@@ -1,5 +1,3 @@
-// app/ui/dashboard/events/announcements-tab.tsx
-
 'use client';
 
 import { useActionState, useEffect, useState, useRef } from 'react';
@@ -79,8 +77,8 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
             orderBy('createdAt', 'desc')
         );
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const announcementsData = querySnapshot.docs.map(doc => doc.data() as Announcement);
-            // Sort by pinned status first, then by date
+            const announcementsData = querySnapshot.docs.map(doc => ({...doc.data(), id: doc.id } as Announcement));
+
             announcementsData.sort((a, b) => {
                 if (a.isPinned && !b.isPinned) return -1;
                 if (!a.isPinned && b.isPinned) return 1;
@@ -107,7 +105,6 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
             <form action={dispatch} ref={formRef} className="rounded-lg border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
                 <h3 className="mb-2 font-semibold tracking-wide text-gray-900 dark:text-zinc-100">Create New Announcement</h3>
                 <input type="hidden" name="eventId" value={eventId} />
-                <input type="hidden" name="organizationId" value={orgId} />
                 <div className="mb-2">
                     <label htmlFor="title" className="sr-only">Title</label>
                     <input type="text" name="title" id="title" required placeholder="Announcement Title" className="block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500" />
@@ -134,22 +131,23 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
                                     <div className="flex-1 pr-4">
                                         <div className="flex items-center gap-2">
                                             {ann.isPinned && (
-                                                <BookmarkIcon className="h-5 w-5 text-blue-500" title="Pinned Announcement" />
+                                                <BookmarkIcon className="h-5 w-5 text-amber-500" title="Pinned Announcement" />
                                             )}
-                                            <h3 className="font-semibold text-gray-900 dark:text-zinc-100">{ann.title}</h3>
+                                            <h3 className=" text-gray-900 dark:text-zinc-100">{ann.title}</h3>
                                         </div>
                                         <p className="mt-1 whitespace-pre-wrap text-sm text-gray-600 dark:text-zinc-300">{ann.content}</p>
                                     </div>
                                     <form action={deleteAnnouncement}>
-                                        <input type="hidden" name="orgId" value={orgId} />
                                         <input type="hidden" name="eventId" value={eventId} />
                                         <input type="hidden" name="announcementId" value={ann.id} />
                                         <DeleteButton />
                                     </form>
                                 </div>
                                 <div className="mt-3 flex items-center gap-4 border-t border-gray-200 pt-3 text-xs text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
-                                    <span className="flex items-center gap-1"><UserCircleIcon className="h-4 w-4" /> {ann.authorName}</span>
-                                    <span className="flex items-center gap-1"><CalendarIcon className="h-4 w-4" /> {new Date(ann.createdAt.seconds * 1000).toLocaleString()}</span>
+                                    <span className="flex items-center gap-1.5 font-medium"><UserCircleIcon className="w-4 h-4" /> {ann.authorName}</span>
+                                    <span className="flex items-center gap-1.5"><CalendarIcon className="w-4 h-4" />
+                                        {new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(ann.createdAt.seconds * 1000))}
+                                    </span>
                                 </div>
                             </li>
                         ))}

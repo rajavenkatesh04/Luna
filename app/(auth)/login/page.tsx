@@ -1,8 +1,10 @@
 import GoogleSignInButton from "@/app/ui/google-signin-button";
 import Link from "next/link";
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 const SessionExpiredMessage = () => (
-    <div className="mb-4 rounded-md border border-yellow-400 bg-yellow-50 p-3 text-center text-sm text-yellow-800 dark:border-yellow-500/30 dark:bg-yellow-900/20 dark:text-yellow-300">
+    <div className="flex items-center justify-center gap-2 rounded-lg bg-amber-900/50 p-3 text-sm text-amber-300">
+        <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0" />
         <p>Your session has expired. Please sign in again.</p>
     </div>
 );
@@ -18,8 +20,6 @@ export default async function LoginPage({
     return (
         <main className="flex min-h-screen items-center justify-center bg-white dark:bg-zinc-950">
             <div className="relative mx-auto flex w-full max-w-sm flex-col space-y-4 p-4">
-                {isSessionExpired && <SessionExpiredMessage />}
-
                 <div className="flex flex-col items-center justify-center text-center">
                     <Link href={'/'}>
                         <span className="text-4xl font-extrabold bg-gradient-to-r from-blue-500 to-teal-400 bg-clip-text text-transparent">
@@ -31,6 +31,9 @@ export default async function LoginPage({
                         The simplest way to manage your event communications.
                     </p>
                 </div>
+
+                {/* The session expired message now appears here, closer to the action */}
+                {isSessionExpired && <SessionExpiredMessage />}
 
                 <div className="w-full pt-4">
                     <GoogleSignInButton />

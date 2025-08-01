@@ -19,7 +19,7 @@ export default function Navbar() {
                         Luna.
                     </h1>
                 </Link>
-                <ToggleSwitch />
+
 
                 {/* Desktop Navbar */}
                 <div className="hidden md:block">
@@ -28,7 +28,6 @@ export default function Navbar() {
                             <Link href="/login">Login</Link>
                         </li>
 
-                        <li><ToggleSwitch /></li>
                     </ul>
                 </div>
 
