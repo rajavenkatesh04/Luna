@@ -54,7 +54,7 @@ async function EventDetails({ params, searchParams }: PageProps) {
             <div className="mb-8 mt-4">
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                     <div className="flex-1">
-                        <h1 className="truncate text-3xl font-semibold text-gray-900 dark:text-zinc-100">{event.title}</h1>
+                        <h1 className="truncate text-3xl tracking-wide text-gray-900 dark:text-zinc-100">{event.title}</h1>
                         <p className="mt-1 text-gray-500 dark:text-zinc-400 md:hidden">{event.description}</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">

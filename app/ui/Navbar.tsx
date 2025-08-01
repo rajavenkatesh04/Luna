@@ -19,6 +19,7 @@ export default function Navbar() {
                         Luna.
                     </h1>
                 </Link>
+                <ToggleSwitch />
 
                 {/* Desktop Navbar */}
                 <div className="hidden md:block">
@@ -26,6 +27,8 @@ export default function Navbar() {
                         <li className="text-sm font-medium text-gray-700 transition-transform duration-300 hover:scale-120 hover:bg-gradient-to-r hover:from-green-300 hover:to-emerald-600 hover:bg-clip-text hover:text-transparent dark:text-zinc-300">
                             <Link href="/login">Login</Link>
                         </li>
+
+                        <li><ToggleSwitch /></li>
                     </ul>
                 </div>
 
@@ -50,6 +53,7 @@ export default function Navbar() {
                     <li className="font-medium text-gray-700 dark:text-zinc-300">
                         <Link href="/login" onClick={() => setIsOpen(false)}>Log In</Link>
                     </li>
+
                 </ul>
             </div>
         </nav>
