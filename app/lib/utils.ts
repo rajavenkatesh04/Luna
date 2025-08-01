@@ -30,3 +30,26 @@ export const generatePagination = (currentPage: number, totalPages: number) => {
         totalPages,
     ];
 };
+
+
+
+export function formatRelativeDate(timestamp: { seconds: number; nanoseconds: number; } | undefined): string {
+    if (!timestamp) return '';
+
+    const date = new Date(timestamp.seconds * 1000);
+    const now = new Date();
+
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+
+    const timeFormatter = new Intl.DateTimeFormat('en-IN', { timeStyle: 'short' });
+
+    if (date >= startOfToday) {
+        return `Today at ${timeFormatter.format(date)}`;
+    } else if (date >= startOfYesterday) {
+        return `Yesterday at ${timeFormatter.format(date)}`;
+    } else {
+        const dateFormatter = new Intl.DateTimeFormat('en-IN', { dateStyle: 'long' });
+        return dateFormatter.format(date);
+    }
+}
