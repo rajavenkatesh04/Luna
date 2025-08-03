@@ -6,9 +6,11 @@ export async function middleware(request: NextRequest) {
     const sessionCookie = request.cookies.get('session')?.value;
     const url = request.nextUrl;
 
-    // If there's no session, they can only access the login page
+    // If there's no session, they can only access public pages
     if (!sessionCookie) {
-        return url.pathname.startsWith('/login')
+        // FIX: Allow access to the homepage ('/') and login page.
+        const isPublicPage = url.pathname === '/' || url.pathname.startsWith('/login');
+        return isPublicPage
             ? NextResponse.next()
             : NextResponse.redirect(new URL('/login', url));
     }
@@ -21,21 +23,18 @@ export async function middleware(request: NextRequest) {
         const { isAuthenticated, isProfileComplete } = await response.json();
 
         if (!isAuthenticated) {
-            // The cookie is invalid/expired, so clear it and send to login
             const res = NextResponse.redirect(new URL('/login', url));
             res.cookies.set('session', '', { maxAge: -1 });
             return res;
         }
 
-        // === User is Authenticated, Now Route Based on Profile Status ===
-
         if (isProfileComplete) {
-            // If the profile is complete, they should NOT be on login or complete-profile
+            // If profile is complete, don't let them see login/onboarding pages
             if (url.pathname.startsWith('/login') || url.pathname.startsWith('/complete-profile')) {
                 return NextResponse.redirect(new URL('/dashboard', url));
             }
         } else {
-            // If the profile is INCOMPLETE, they MUST be on the complete-profile page
+            // If profile is incomplete, force them to the complete-profile page
             if (!url.pathname.startsWith('/complete-profile')) {
                 return NextResponse.redirect(new URL('/complete-profile', url));
             }
@@ -51,5 +50,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+    // This matcher applies the middleware to all routes except for API, static files, etc.
     matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };
