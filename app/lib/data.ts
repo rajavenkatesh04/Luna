@@ -1,7 +1,7 @@
 // app/lib/data.ts
 
 import { unstable_noStore as noStore } from 'next/cache';
-import { User, Event } from '@/app/lib/definitions';
+import { User, Event, Invitation  } from '@/app/lib/definitions';
 // Switch to using the ADMIN Firestore instance for all server-side data fetching
 import { adminDb } from './firebase-server';
 
@@ -117,6 +117,34 @@ export async function fetchUsersByUid(uids: string[]): Promise<User[]> {
         return userDocs.docs.map(doc => doc.data() as User);
     } catch (error) {
         console.error('Database Error fetching users by UID:', error);
+        return [];
+    }
+}
+
+
+// Fetches all invitations for a specific event
+// In app/lib/data.ts
+
+export async function fetchEventInvitations(eventId: string): Promise<Invitation[]> {
+    noStore();
+    try {
+        const snapshot = await adminDb.collection('invitations')
+            .where("eventId", "==", eventId)
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        // 3. Ensure the returned object matches the Invitation type
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: data.id,
+                inviteeEmail: data.inviteeEmail,
+                status: data.status,
+                createdAt: data.createdAt.toDate().toISOString(),
+            };
+        });
+    } catch (error) {
+        console.error('Database Error fetching event invites:', error);
         return [];
     }
 }

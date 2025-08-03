@@ -1,12 +1,14 @@
 'use client';
 
-import { User } from '@/app/lib/definitions';
+import { User, Invitation  } from '@/app/lib/definitions';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { sendInvite } from '@/app/lib/actions';
 import LoadingSpinner from '@/app/ui/dashboard/loading-spinner';
 import RemoveAdminButton from './remove-admin-button';
+import InvitationStatusList from './invitation-status'; // Make sure this path is correct
 
+// --- Sub-component for the Invite Button ---
 function InviteButton() {
     const { pending } = useFormStatus();
     return (
@@ -25,18 +27,24 @@ function InviteButton() {
     );
 }
 
+
+// --- Main AdminsTab Component ---
 export default function AdminsTab({
-                                      eventId,
+                                      eventDocId,
+                                      eventShortId,
                                       admins,
                                       orgId,
                                       ownerUid,
-                                      currentUserId
+                                      currentUserId,
+                                      sentInvites,
                                   }: {
-    eventId: string,
+    eventDocId: string,
+    eventShortId: string,
     admins: User[],
     orgId: string,
     ownerUid: string,
-    currentUserId: string
+    currentUserId: string,
+    sentInvites: Invitation[],
 }) {
     const [state, formAction] = useActionState(sendInvite, { message: null });
 
@@ -54,8 +62,7 @@ export default function AdminsTab({
             <div>
                 <h3 className="font-medium text-gray-900 dark:text-zinc-100">Invite New Admin</h3>
                 <form action={formAction} className="mt-2 flex flex-col items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900 md:flex-row">
-                    <input type="hidden" name="eventId" value={eventId} />
-                    <input type="hidden" name="orgId" value={orgId} />
+                    <input type="hidden" name="eventId" value={eventShortId} />
                     <input
                         type="email"
                         name="inviteeEmail"
@@ -76,14 +83,16 @@ export default function AdminsTab({
                         <h3 className="font-medium text-gray-900 dark:text-zinc-100">Owner</h3>
                         <div className="mt-2 rounded-lg border-2 border-amber-200 bg-amber-50 shadow-sm dark:border-amber-900 dark:bg-amber-950/20">
                             <div className="flex items-center justify-between px-6 py-4">
-                                <div>
-                                    <p className="font-medium text-gray-900 dark:text-zinc-100">
+                                {/* FIX: Added min-w-0 to allow text to wrap */}
+                                <div className="min-w-0">
+                                    <p className="font-medium text-gray-900 dark:text-zinc-100 truncate">
                                         {owner.displayName}
                                         {currentUserId === owner.uid && <span className="ml-2 text-xs font-normal text-gray-500 dark:text-zinc-500">(You)</span>}
                                     </p>
-                                    <p className="text-sm text-gray-500 dark:text-zinc-400">{owner.email}</p>
+                                    {/* FIX: Added truncate to handle long emails */}
+                                    <p className="text-sm text-gray-500 dark:text-zinc-400 truncate">{owner.email}</p>
                                 </div>
-                                <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-900/50 dark:text-amber-300 dark:ring-amber-400/20">
+                                <span className="ml-4 flex-shrink-0 inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-900/50 dark:text-amber-300 dark:ring-amber-400/20">
                                     Owner
                                 </span>
                             </div>
@@ -98,20 +107,23 @@ export default function AdminsTab({
                         {otherAdmins.length > 0 ? (
                             <ul className="divide-y divide-gray-200 dark:divide-zinc-800">
                                 {otherAdmins.map(admin => (
-                                    <li key={admin.uid} className="flex items-center justify-between px-6 py-4">
-                                        <div>
-                                            <p className="font-medium text-gray-900 dark:text-zinc-100">
+                                    <li key={admin.uid} className="flex items-center justify-between gap-4 px-6 py-4">
+                                        {/* FIX: Added flex-1 and min-w-0 to the container */}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-gray-900 dark:text-zinc-100 truncate">
                                                 {admin.displayName}
                                                 {currentUserId === admin.uid && <span className="ml-2 text-xs font-normal text-pink-500">(You)</span>}
                                             </p>
-                                            <p className="text-sm text-gray-500 dark:text-zinc-400">{admin.email}</p>
+                                            {/* FIX: Added truncate to handle long emails */}
+                                            <p className="text-sm text-gray-500 dark:text-zinc-400 truncate">{admin.email}</p>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        {/* FIX: Added flex-shrink-0 to prevent this part from shrinking */}
+                                        <div className="flex flex-shrink-0 items-center gap-2">
                                             <span className="inline-flex items-center rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-900/50 dark:text-blue-300 dark:ring-blue-400/20">
                                                 Admin
                                             </span>
                                             {currentUserId === ownerUid && (
-                                                <RemoveAdminButton orgId={orgId} eventId={eventId} adminUidToRemove={admin.uid} />
+                                                <RemoveAdminButton orgId={orgId} eventId={eventShortId} adminUidToRemove={admin.uid} />
                                             )}
                                         </div>
                                     </li>
@@ -121,6 +133,14 @@ export default function AdminsTab({
                             <p className="px-6 py-4 text-sm text-gray-500 dark:text-zinc-400">There are no other admins for this event.</p>
                         )}
                     </div>
+                </div>
+            </div>
+
+            {/* Sent Invitations Section */}
+            <div>
+                <h3 className="font-medium text-gray-900 dark:text-zinc-100">Sent Invitations</h3>
+                <div className="mt-2 rounded-lg border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+                    <InvitationStatusList invites={sentInvites} eventId={eventShortId} />
                 </div>
             </div>
         </div>

@@ -354,23 +354,27 @@ export async function deleteAnnouncement(formData: FormData) {
 
 export type SendInviteState = { message: string | null; };
 
+// In app/lib/actions.ts
+
 export async function sendInvite(prevState: SendInviteState, formData: FormData): Promise<SendInviteState> {
     const session = await adminAuth.getSession();
     if (!session) return { message: 'Not authenticated.' };
 
-    const validatedFields = z.object({ eventId: z.string(), orgId: z.string(), inviteeEmail: z.string().email() }).safeParse(Object.fromEntries(formData));
+    // The 'eventId' from the form is the short ID. The 'orgId' is no longer needed for the lookup.
+    const validatedFields = z.object({
+        eventId: z.string(), // This is the short ID, e.g., "LEI504"
+        inviteeEmail: z.string().email()
+    }).safeParse(Object.fromEntries(formData));
+
     if (!validatedFields.success) return { message: 'Invalid fields.' };
-    const { eventId, orgId, inviteeEmail } = validatedFields.data;
+    const { eventId, inviteeEmail } = validatedFields.data;
 
     try {
-        const eventRef = adminDb.doc(`organizations/${orgId}/events/${eventId}`);
-        const eventSnap = await eventRef.get();
-        if (!eventSnap.exists) throw new Error("Event not found.");
-
-        // SECURITY CHECK: User must be an admin of the event to send invites.
-        if (!eventSnap.data()!.admins.includes(session.uid)) {
-            return { message: "Permission denied." };
-        }
+        // Use the helper function to find the event and verify the current user is an admin.
+        // This fixes the "Event not found" error AND handles the security check in one go.
+        const eventDoc = await findEventAndVerifyAdmin(eventId, session.uid);
+        const eventSnap = eventDoc.data()!;
+        const orgId = eventDoc.ref.parent.parent!.id; // Get the orgId from the document path
 
         const usersRef = adminDb.collection('users');
         const userQuery = usersRef.where("email", "==", inviteeEmail).limit(1);
@@ -378,12 +382,13 @@ export async function sendInvite(prevState: SendInviteState, formData: FormData)
         if (userSnapshot.empty) return { message: `No user with email: ${inviteeEmail}` };
 
         const inviteeUser = userSnapshot.docs[0].data();
-        if (eventSnap.data()?.admins.includes(inviteeUser.uid)) {
+        if (eventSnap.admins.includes(inviteeUser.uid)) {
             return { message: 'This user is already an admin for this event.' };
         }
 
+        // Use the event's Firestore Document ID (eventDoc.id) for the query, not the short ID.
         const invitesRef = adminDb.collection('invitations');
-        const invitesQuery = invitesRef.where("inviteeUid", "==", inviteeUser.uid).where("eventId", "==", eventId).where("status", "==", "pending").limit(1);
+        const invitesQuery = invitesRef.where("inviteeUid", "==", inviteeUser.uid).where("eventId", "==", eventDoc.id).where("status", "==", "pending").limit(1);
         const existingInviteSnap = await invitesQuery.get();
         if (!existingInviteSnap.empty) {
             return { message: 'An invitation for this user is already pending.' };
@@ -391,13 +396,23 @@ export async function sendInvite(prevState: SendInviteState, formData: FormData)
 
         const invitationRef = invitesRef.doc();
         await invitationRef.set({
-            id: invitationRef.id, inviterUid: session.uid, inviteeEmail, inviteeUid: inviteeUser.uid, organizationId: orgId, eventId, eventTitle: eventSnap.data()?.title || 'an event', status: 'pending', createdAt: Timestamp.now(),
+            id: invitationRef.id,
+            inviterUid: session.uid,
+            inviteeEmail,
+            inviteeUid: inviteeUser.uid,
+            organizationId: orgId,
+            eventId: eventDoc.id, // Store the Firestore Document ID
+            eventTitle: eventSnap.title || 'an event',
+            status: 'pending',
+            createdAt: Timestamp.now(),
         });
-        revalidatePath(`/dashboard/events/${eventId}`);
+
+        // Use the event's short ID for the revalidation path
+        revalidatePath(`/dashboard/events/${eventId}?tab=admins`);
         return { message: `Invite sent successfully to ${inviteeEmail}.` };
     } catch (error) {
         console.error("Send Invite Error:", error);
-        return { message: 'Failed to send invite.' };
+        return { message: error instanceof Error ? error.message : 'Failed to send invite.' };
     }
 }
 
@@ -443,6 +458,22 @@ export async function rejectInvite(formData: FormData) {
     await invitationRef.update({ status: 'rejected' });
 
     revalidatePath('/dashboard/invitations');
+}
+
+
+export async function revokeInvite(formData: FormData) {
+    const session = await adminAuth.getSession();
+    if (!session) throw new Error("Not authenticated.");
+
+    const eventId = formData.get('eventId')?.toString(); // short ID
+    const invitationId = formData.get('invitationId')?.toString();
+    if (!invitationId || !eventId) throw new Error("Missing required fields.");
+
+    // Security Check: Verify user is an admin of the event before revoking
+    await findEventAndVerifyAdmin(eventId, session.uid);
+
+    await adminDb.doc(`invitations/${invitationId}`).delete();
+    revalidatePath(`/dashboard/events/${eventId}?tab=admins`);
 }
 
 export async function removeAdmin(formData: FormData) {

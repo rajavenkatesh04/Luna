@@ -39,6 +39,14 @@ export type Announcement = {
     };
 };
 
+export type Invitation = {
+    id: string;
+    inviteeEmail: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    createdAt: string; // This is an ISO string after we serialized it
+    // Add any other fields you might use from the invitation document
+};
+
 
 export interface Poll {
     id: string;

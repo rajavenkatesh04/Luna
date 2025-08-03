@@ -1,8 +1,6 @@
-// app/dashboard/events/[id]/page.tsx
-
 import { Suspense } from 'react';
 import { auth } from '@/app/lib/firebase-admin';
-import { fetchEventById, fetchUserProfile, fetchUsersByUid, fetchSubscriberCount } from '@/app/lib/data';
+import { fetchEventById, fetchUserProfile, fetchUsersByUid, fetchSubscriberCount, fetchEventInvitations } from '@/app/lib/data';
 import { notFound } from 'next/navigation';
 import Breadcrumbs from '@/app/ui/dashboard/events/breadcrumbs';
 import Link from 'next/link';
@@ -12,7 +10,7 @@ import AdminsTab from '@/app/ui/dashboard/events/admins-tab';
 import SettingsTab from '@/app/ui/dashboard/events/settings-tab';
 import clsx from 'clsx';
 import QrCodeDisplay from "@/app/ui/dashboard/events/qr-code-display";
-import { EventDetailsPageSkeleton } from '@/app/ui/skeletons';
+import { EventDetailsPageSkeleton, AnnouncementsTabSkeleton, AdminsTabSkeleton } from '@/app/ui/skeletons';
 
 type PageProps = {
     params: Promise<{ id: string }>;
@@ -20,8 +18,9 @@ type PageProps = {
 };
 
 async function EventDetails({ params, searchParams }: PageProps) {
-    // Await params and searchParams before using them
-    const { id: eventId } = await params;
+    const resolvedParams = await params;
+    const { id: eventId } = resolvedParams;
+
     const resolvedSearchParams = await searchParams;
     const activeTab = resolvedSearchParams?.tab || 'announcements';
 
@@ -45,7 +44,7 @@ async function EventDetails({ params, searchParams }: PageProps) {
                     { label: 'Events', href: '/dashboard/events' },
                     {
                         label: event.title,
-                        href: `/dashboard/events/${event.docId}`,
+                        href: `/dashboard/events/${event.id}`, // Use short ID for navigation
                         active: true,
                     },
                 ]}
@@ -77,7 +76,7 @@ async function EventDetails({ params, searchParams }: PageProps) {
                 <div className="border-b border-gray-200 dark:border-zinc-800">
                     <nav className="-mb-px flex space-x-8" aria-label="Tabs">
                         <Link
-                            href={`/dashboard/events/${event.docId}?tab=announcements`}
+                            href={`/dashboard/events/${event.id}?tab=announcements`}
                             className={clsx(
                                 "whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium",
                                 {
@@ -89,7 +88,7 @@ async function EventDetails({ params, searchParams }: PageProps) {
                             Announcements
                         </Link>
                         <Link
-                            href={`/dashboard/events/${event.docId}?tab=admins`}
+                            href={`/dashboard/events/${event.id}?tab=admins`}
                             className={clsx(
                                 "whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium",
                                 {
@@ -101,7 +100,7 @@ async function EventDetails({ params, searchParams }: PageProps) {
                             Admins
                         </Link>
                         <Link
-                            href={`/dashboard/events/${event.docId}?tab=settings`}
+                            href={`/dashboard/events/${event.id}?tab=settings`}
                             className={clsx(
                                 "whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium",
                                 {
@@ -116,8 +115,29 @@ async function EventDetails({ params, searchParams }: PageProps) {
                 </div>
 
                 <div className="py-6">
-                    {activeTab === 'announcements' && <AnnouncementsTab eventId={event.docId} orgId={event.organizationId} />}
-                    {activeTab === 'admins' && <AdminsTab eventId={event.docId} admins={adminUsers} orgId={userProfile.organizationId} ownerUid={event.ownerUid} currentUserId={session.uid} />}
+                    {activeTab === 'announcements' && (
+                        <Suspense fallback={<AnnouncementsTabSkeleton />}>
+                            <AnnouncementsTab eventId={event.docId} orgId={event.organizationId} />
+                        </Suspense>
+                    )}
+                    {activeTab === 'admins' && (
+                        <Suspense fallback={<AdminsTabSkeleton />}>
+                            {(async () => {
+                                const sentInvites = await fetchEventInvitations(event.docId);
+                                return (
+                                    <AdminsTab
+                                        eventDocId={event.docId}
+                                        eventShortId={event.id}
+                                        admins={adminUsers}
+                                        orgId={userProfile.organizationId}
+                                        ownerUid={event.ownerUid}
+                                        currentUserId={session.uid}
+                                        sentInvites={sentInvites}
+                                    />
+                                );
+                            })()}
+                        </Suspense>
+                    )}
                     {activeTab === 'settings' && <SettingsTab eventId={event.docId} />}
                 </div>
             </div>

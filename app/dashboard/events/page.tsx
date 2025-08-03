@@ -23,7 +23,7 @@ async function EventsList() {
                             className="block rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
                         >
                             <div className="mb-2 flex items-center justify-between">
-                                <h3 className="min-w-0 truncate bg-gradient-to-r from-zinc-400 to-zinc-100 bg-clip-text text-xl font-medium text-transparent">
+                                <h3 className="min-w-0 truncate bg-gradient-to-r from-zinc-600 to-zinc-400 bg-clip-text text-xl font-medium text-transparent">
                                     {event.title}
                                 </h3>
 
