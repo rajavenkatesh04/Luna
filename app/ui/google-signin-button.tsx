@@ -3,11 +3,11 @@
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth, db } from "@/app/lib/firebase";
 import { useState } from "react";
-import { doc, getDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
 
-// Google Icon SVG component - no changes needed here
+// Google Icon SVG component
 const GoogleIcon = () => (
     <svg className="h-5 w-5" viewBox="0 0 48 48">
         <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
@@ -17,8 +17,6 @@ const GoogleIcon = () => (
         <path fill="none" d="M0 0h48v48H0z"></path>
     </svg>
 );
-
-const PUBLIC_EMAIL_DOMAINS = new Set(['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com']);
 
 export default function GoogleSignInButton() {
     const [isLoading, setIsLoading] = useState(false);
@@ -32,8 +30,8 @@ export default function GoogleSignInButton() {
         try {
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
-            if (!user.email) throw new Error("No email returned from Google.");
 
+            // Step 1: Securely create the server-side session
             const idToken = await user.getIdToken();
             const response = await fetch('/api/auth/session', {
                 method: 'POST',
@@ -43,51 +41,22 @@ export default function GoogleSignInButton() {
 
             if (!response.ok) throw new Error("Failed to create session.");
 
+            // Step 2: Check if the user is returning or new
             const userRef = doc(db, 'users', user.uid);
             const userDoc = await getDoc(userRef);
 
             if (userDoc.exists()) {
+                // User already has a profile, send them to the dashboard
                 router.push('/dashboard');
-                return;
-            }
-
-            const emailDomain = user.email.split('@')[1];
-
-            if (PUBLIC_EMAIL_DOMAINS.has(emailDomain)) {
+            } else {
+                // This is a brand new user. Send them to complete their profile.
+                // This single step replaces all the complex domain-claiming logic.
                 router.push('/complete-profile');
-            } else {
-                const orgsRef = collection(db, 'organizations');
-                const q = query(orgsRef, where("claimedDomain", "==", emailDomain));
-                const querySnapshot = await getDocs(q);
-
-                if (!querySnapshot.empty) {
-                    setError(`The domain ${emailDomain} is already claimed. Please ask for an invitation.`);
-                    await auth.signOut();
-                    await fetch('/api/auth/session', { method: 'DELETE' });
-                    setIsLoading(false);
-                    return;
-                }
-
-                const orgName = emailDomain.split('.')[0].replace(/^\w/, c => c.toUpperCase()) + " Workspace";
-                const batch = writeBatch(db);
-                const orgRef = doc(collection(db, 'organizations'));
-                batch.set(orgRef, { name: orgName, ownerUid: user.uid, subscriptionTier: 'free', claimedDomain: emailDomain });
-                batch.set(userRef, { uid: user.uid, email: user.email, displayName: user.displayName || "User", organizationId: orgRef.id, role: 'owner' });
-                await batch.commit();
-                router.push('/dashboard');
             }
+
         } catch (error: unknown) {
-            if (typeof error === 'object' && error !== null && 'code' in error) {
-                const firebaseError = error as { code: string };
-                if (firebaseError.code === 'auth/account-exists-with-different-credential') {
-                    setError('This email is already associated with a different sign-in method.');
-                } else {
-                    setError("Failed to sign in. Please try again.");
-                }
-            } else {
-                setError("An unexpected error occurred.");
-            }
             console.error("Google Sign-In Error", error);
+            setError("Failed to sign in. Please try again.");
             setIsLoading(false);
         }
     };
