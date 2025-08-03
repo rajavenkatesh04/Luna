@@ -27,7 +27,7 @@ export default function NavLinks() {
                             'flex h-12 w-12 items-center justify-center rounded-full text-gray-600 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100',
                             'md:h-[48px] md:w-full md:rounded-md md:justify-start md:px-3 md:gap-2',
                             {
-                                'border border-pink-200 bg-pink-50 text-pink-600 dark:border-pink-800/50 dark:bg-pink-900/20 dark:text-pink-300': pathname === link.href,
+                                'border border-pink-200 bg-pink-100 text-pink-600 dark:border-pink-800/50 dark:bg-pink-900/20 dark:text-pink-300': pathname === link.href,
                                 'md:bg-gray-100 md:text-gray-900 md:dark:bg-zinc-800 md:dark:text-zinc-100': pathname === link.href,
                             },
                         )}

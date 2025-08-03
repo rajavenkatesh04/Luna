@@ -124,7 +124,7 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
             <div className="mt-8">
                 <h3 className="mb-4 font-semibold text-gray-900 dark:text-zinc-100">Posted Announcements</h3>
                 {announcements.length > 0 ? (
-                    <ul className="space-y-4">
+                    <ul className="space-y-4 ">
                         {announcements.map((ann) => (
                             <li key={ann.id} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                                 <div className="flex items-start justify-between">
@@ -135,7 +135,7 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
                                             )}
                                             <h3 className=" text-gray-900 dark:text-zinc-100">{ann.title}</h3>
                                         </div>
-                                        <p className="mt-1 whitespace-pre-wrap text-sm text-gray-600 dark:text-zinc-300">{ann.content}</p>
+                                        <p className="mt-1 whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-zinc-300">{ann.content}</p>
                                     </div>
                                     <form action={deleteAnnouncement}>
                                         <input type="hidden" name="eventId" value={eventId} />
@@ -143,7 +143,7 @@ export default function AnnouncementsTab({ eventId, orgId }: { eventId: string, 
                                         <DeleteButton />
                                     </form>
                                 </div>
-                                <div className="mt-3 flex items-center gap-4 border-t border-gray-200 pt-3 text-xs text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
+                                <div className="mt-3 flex items-center justify-between gap-4 border-t border-gray-200 pt-3 text-xs text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
                                     <span className="flex items-center gap-1.5 font-medium"><UserCircleIcon className="w-4 h-4" /> {ann.authorName}</span>
                                     <span className="flex items-center gap-1.5"><CalendarIcon className="w-4 h-4" />
                                         {new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(ann.createdAt.seconds * 1000))}

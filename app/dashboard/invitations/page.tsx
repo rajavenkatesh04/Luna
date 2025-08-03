@@ -20,8 +20,8 @@ async function InvitationsList() {
                     <ul className="divide-y divide-gray-200 dark:divide-zinc-800">
                         {invites.map(invite => (
                             <li key={invite.id} className="flex flex-col items-start gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-                                <p className="font-medium text-gray-900 dark:text-zinc-100">
-                                    Invitation to join <span className="font-semibold">{invite.eventTitle}</span>
+                                <p className="font-medium text-gray-900 dark:text-zinc-100 text-xl">
+                                    {invite.eventTitle}
                                 </p>
                                 <div className="flex w-full flex-shrink-0 gap-3 sm:w-auto">
                                     <form action={rejectInvite} className="w-1/2 sm:w-auto">
