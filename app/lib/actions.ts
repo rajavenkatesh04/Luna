@@ -16,6 +16,87 @@ import { cookies } from 'next/headers';
 // NOTE: All database operations in this file now consistently use the Admin SDK (`adminDb`).
 
 // =================================================================================
+// --- USER & PROFILE ACTIONS ---
+// =================================================================================
+
+export type CompleteProfileState = {
+    message?: string;
+    errors?: {
+        organizationName?: string[];
+        server?: string[];
+    };
+};
+
+const CompleteProfileSchema = z.object({
+    organizationName: z.string().min(2, { message: "Organization name must be at least 2 characters." }),
+});
+
+export async function completeUserProfile(
+    prevState: CompleteProfileState | null,
+    formData: FormData
+): Promise<CompleteProfileState> {
+    // 1. Get the authenticated user on the SERVER
+    const session = await adminAuth.getSession();
+    if (!session?.uid || !session.email) {
+        return { message: "Authentication error. Please sign in again." };
+    }
+
+    // 2. Validate the form data on the SERVER
+    const validatedFields = CompleteProfileSchema.safeParse({
+        organizationName: formData.get('organizationName'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Invalid organization name.',
+        };
+    }
+    const { organizationName } = validatedFields.data;
+
+    try {
+        // 3. Use the ADMIN SDK to write to the database
+        const userDocRef = adminDb.collection('users').doc(session.uid);
+        const userDoc = await userDocRef.get();
+
+        // Prevent re-running this action if the profile is already complete
+        if (userDoc.exists) {
+            console.log("User profile already exists, redirecting to dashboard.");
+            redirect('/dashboard');
+        }
+
+        const batch = adminDb.batch(); // Use ADMIN batch
+
+        // Create the organization
+        const orgRef = adminDb.collection('organizations').doc();
+        batch.set(orgRef, {
+            name: organizationName,
+            ownerUid: session.uid,
+            subscriptionTier: 'free',
+        });
+
+        // Create the user profile
+        batch.set(userDocRef, {
+            uid: session.uid,
+            email: session.email,
+            displayName: session.name || "User",
+            organizationId: orgRef.id,
+            role: 'owner',
+        });
+
+        await batch.commit();
+
+    } catch (err) {
+        console.error("Profile Completion Error:", err);
+        return { message: "Failed to create your workspace. Please try again." };
+    }
+
+    // 4. Redirect on success
+    revalidatePath('/dashboard');
+    redirect('/dashboard');
+}
+
+// =================================================================================
 // --- AUTH ACTIONS ---
 // =================================================================================
 
@@ -32,6 +113,8 @@ export async function logout() {
     // Always redirect to login after attempting to log out
     redirect('/login');
 }
+
+
 
 
 // =================================================================================
