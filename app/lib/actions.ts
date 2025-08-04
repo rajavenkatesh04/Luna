@@ -269,26 +269,45 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
     const session = await adminAuth.getSession();
     if (!session?.uid) return { message: "Authentication error." };
 
-    // Updated Schema: No longer needs organizationId from the client
     const CreateAnnouncementSchema = z.object({
-        title: z.string().min(1),
-        content: z.string().min(1),
-        eventId: z.string(), // This is the Firestore Document ID
-        isPinned: z.preprocess((v) => v === 'on', z.boolean())
+        title: z.string().min(1, { message: "Title is required." }),
+        content: z.string().min(1, { message: "Content is required." }),
+        eventId: z.string(),
+        isPinned: z.preprocess((v) => v === 'on', z.boolean()),
+        // Add optional location fields
+        locationName: z.string().optional(),
+        locationLat: z.string().optional(),
+        locationLng: z.string().optional(),
     });
 
     const validatedFields = CreateAnnouncementSchema.safeParse(Object.fromEntries(formData));
-    if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors, message: 'Missing fields.' };
 
-    const { title: announcementTitle, content, eventId, isPinned } = validatedFields.data;
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Missing or invalid fields.',
+        };
+    }
+
+    const {
+        title: announcementTitle,
+        content,
+        eventId,
+        isPinned,
+        locationName,
+        locationLat,
+        locationLng
+    } = validatedFields.data;
+
+    const locationData = locationName && locationLat && locationLng
+        ? { name: locationName, lat: parseFloat(locationLat), lng: parseFloat(locationLng) }
+        : null;
 
     try {
-        // Step 1: Find the event and verify the user is an admin
         const eventDoc = await findEventAndVerifyAdmin(eventId, session.uid);
         const eventData = eventDoc.data()!;
-
-        // Step 2: Create the new announcement document
         const announcementRef = eventDoc.ref.collection('announcements').doc();
+
         await announcementRef.set({
             id: announcementRef.id,
             authorName: session.name || 'Admin',
@@ -296,11 +315,11 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
             title: announcementTitle,
             content: content,
             isPinned: isPinned,
+            location: locationData, // Save the location object
             createdAt: Timestamp.now(),
         });
 
-        // Step 3: Construct and send the FCM notification
-        const topic = `event_${eventData.id.replace(/-/g, '_')}`; // Use the short ID for the topic
+        const topic = `event_${eventData.id.replace(/-/g, '_')}`;
         const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
         const messagePayload = {
             topic: topic,
@@ -309,7 +328,7 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
                 body: announcementTitle
             },
             data: {
-                url: `${baseUrl}/e/${eventData.id}` // Use the short ID for the public URL
+                url: `${baseUrl}/e/${eventData.id}`
             }
         };
         await adminMessaging.send(messagePayload);
@@ -322,6 +341,7 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
     revalidatePath(`/dashboard/events/${eventId}?tab=announcements`);
     return { message: `Successfully created announcement.` };
 }
+
 
 export async function deleteAnnouncement(formData: FormData) {
     const session = await adminAuth.getSession();
@@ -531,22 +551,18 @@ export async function subscribeToTopic(token: string, eventId: string) {
     try {
         await adminMessaging.subscribeToTopic(token, topic);
 
-        // Note: This lookup can be slow on a very large number of organizations.
-        // It can be optimized later if needed.
-        const orgsQuery = adminDb.collection('organizations');
-        const orgsSnapshot = await orgsQuery.get();
-        let eventPath = '';
-        for (const orgDoc of orgsSnapshot.docs) {
-            const potentialEventRef = adminDb.doc(`organizations/${orgDoc.id}/events/${eventId}`);
-            const eventSnap = await potentialEventRef.get();
-            if (eventSnap.exists) {
-                eventPath = potentialEventRef.path;
-                break;
-            }
-        }
+        // Use a collectionGroup query to find the event directly.
+        // This is much more efficient.
+        const eventsQuery = adminDb.collectionGroup('events').where('id', '==', eventId).limit(1);
+        const eventSnapshot = await eventsQuery.get();
 
-        if (eventPath) {
+        if (!eventSnapshot.empty) {
+            const eventDoc = eventSnapshot.docs[0];
+            const eventPath = eventDoc.ref.path;
+            // Save the token to the event's subscribers sub-collection
             await adminDb.doc(`${eventPath}/subscribers/${token}`).set({ subscribedAt: Timestamp.now() });
+        } else {
+            console.error(`Could not find event with short ID ${eventId} to save subscriber token.`);
         }
 
         return { success: true };
