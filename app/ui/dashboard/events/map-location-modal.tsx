@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { APIProvider, Map, AdvancedMarker, useMap, useMapsLibrary, MapMouseEvent } from '@vis.gl/react-google-maps';
 
+// --- INTERFACES ---
+
 interface Place {
     placePrediction: {
         text: { text: string };
@@ -45,6 +47,8 @@ interface MapLocationModalProps {
     }) => void;
 }
 
+// --- CHILD COMPONENTS ---
+
 function PlaceAutocomplete({ onPlaceSelect }: PlaceAutocompleteProps) {
     const [input, setInput] = useState('');
     const [suggestions, setSuggestions] = useState<Place[]>([]);
@@ -63,7 +67,7 @@ function PlaceAutocomplete({ onPlaceSelect }: PlaceAutocompleteProps) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Goog-Api-Key': process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+                    'X-Goog-Api-Key': process.env.NEXT_PUBLIC_Maps_API_KEY || '',
                 },
                 body: JSON.stringify({ input: text }),
             });
@@ -88,7 +92,7 @@ function PlaceAutocomplete({ onPlaceSelect }: PlaceAutocompleteProps) {
             const response = await fetch(`https://places.googleapis.com/v1/${place.placePrediction.place}?fields=location,displayName`, {
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Goog-Api-Key': process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+                    'X-Goog-Api-Key': process.env.NEXT_PUBLIC_Maps_API_KEY || '',
                 },
             });
             const placeDetails: PlaceDetails = await response.json();
@@ -219,13 +223,16 @@ function MapComponent({ mode, onPinChange, onPolygonChange, initialPosition, dra
             gestureHandling={'greedy'}
             disableDefaultUI={true}
             onClick={handleMapClick}
-            className="h-80 w-full rounded-md"
-            mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_ID}
+            className="h-64 w-full rounded-md md:h-80" // Responsive height
+            mapId={process.env.NEXT_PUBLIC_Maps_ID}
         >
             {mode === 'pin' && markerPos && <AdvancedMarker position={markerPos} />}
         </Map>
     );
 }
+
+
+// --- MAIN EXPORTED COMPONENT (Fixed for responsiveness) ---
 
 export default function MapLocationModal({ isOpen, onClose, onSave }: MapLocationModalProps) {
     const [mode, setMode] = useState<'pin' | 'polygon'>('pin');
@@ -265,82 +272,96 @@ export default function MapLocationModal({ isOpen, onClose, onSave }: MapLocatio
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">Add a Location</h3>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-4 md:col-span-1">
-                        <div>
-                            <label className="text-sm font-medium">Mode</label>
-                            <div className="mt-1 flex rounded-md shadow-sm">
-                                <button
-                                    onClick={() => setMode('pin')}
-                                    className={`px-4 py-2 text-sm rounded-l-md ${mode === 'pin' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-zinc-700'}`}
-                                >
-                                    Pin
-                                </button>
-                                <button
-                                    onClick={() => setMode('polygon')}
-                                    className={`px-4 py-2 text-sm rounded-r-md ${mode === 'polygon' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-zinc-700'}`}
-                                >
-                                    Area
-                                </button>
-                            </div>
-                        </div>
-                        <div>
-                            <label htmlFor="locationName" className="text-sm font-medium">Location Name</label>
-                            <input
-                                type="text"
-                                id="locationName"
-                                value={locationName}
-                                onChange={(e) => setLocationName(e.target.value)}
-                                placeholder="e.g., Main Stage"
-                                className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 py-2 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="locationDetails" className="text-sm font-medium">Info Box Details</label>
-                            <textarea
-                                id="locationDetails"
-                                value={locationDetails}
-                                onChange={(e) => setLocationDetails(e.target.value)}
-                                rows={3}
-                                placeholder="Details to show in pop-up..."
-                                className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 py-2 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                            />
-                        </div>
-                        {mode === 'polygon' && (
-                            <div>
-                                <label htmlFor="fillColor" className="text-sm font-medium">Area Color</label>
-                                <input
-                                    type="color"
-                                    id="fillColor"
-                                    value={fillColor}
-                                    onChange={(e) => setFillColor(e.target.value)}
-                                    className="mt-1 h-10 w-full rounded-md"
-                                />
-                            </div>
-                        )}
-                    </div>
+        // Backdrop with padding
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            {/* Modal Panel: Use flex-col and control height */}
+            <div className="flex h-full w-full max-w-2xl flex-col rounded-lg bg-white shadow-xl dark:bg-zinc-900 sm:max-h-[95vh]">
 
-                    <div className="md:col-span-2">
-                        <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}>
-                            <PlaceAutocomplete onPlaceSelect={(place) => setMapCenter(place)} />
-                            <div className="mt-2">
-                                <MapComponent
-                                    mode={mode}
-                                    onPinChange={setPinCenter}
-                                    onPolygonChange={setPolygonPath}
-                                    initialPosition={mapCenter}
-                                    drawnPath={polygonPath}
-                                    fillColor={fillColor}
+                {/* Header */}
+                <div className="border-b border-gray-200 p-6 dark:border-zinc-800">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">Add a Location</h3>
+                </div>
+
+                {/* Scrollable Content Area */}
+                <div className="flex-grow overflow-y-auto p-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+
+                        {/* Left Column: Inputs */}
+                        <div className="space-y-4 md:col-span-1">
+                            <div>
+                                <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">Mode</label>
+                                <div className="mt-1 flex rounded-md shadow-sm">
+                                    <button
+                                        onClick={() => setMode('pin')}
+                                        className={`w-full px-4 py-2 text-sm rounded-l-md ${mode === 'pin' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-zinc-700'}`}
+                                    >
+                                        Pin
+                                    </button>
+                                    <button
+                                        onClick={() => setMode('polygon')}
+                                        className={`w-full px-4 py-2 text-sm rounded-r-md ${mode === 'polygon' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-zinc-700'}`}
+                                    >
+                                        Area
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label htmlFor="locationName" className="text-sm font-medium text-gray-700 dark:text-zinc-300">Location Name</label>
+                                <input
+                                    type="text"
+                                    id="locationName"
+                                    value={locationName}
+                                    onChange={(e) => setLocationName(e.target.value)}
+                                    placeholder="e.g., Main Stage"
+                                    className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 py-2 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-800"
                                 />
                             </div>
-                        </APIProvider>
+                            <div>
+                                <label htmlFor="locationDetails" className="text-sm font-medium text-gray-700 dark:text-zinc-300">Info Box Details</label>
+                                <textarea
+                                    id="locationDetails"
+                                    value={locationDetails}
+                                    onChange={(e) => setLocationDetails(e.target.value)}
+                                    rows={3}
+                                    placeholder="Details to show in pop-up..."
+                                    className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 py-2 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                                />
+                            </div>
+                            {mode === 'polygon' && (
+                                <div>
+                                    <label htmlFor="fillColor" className="text-sm font-medium text-gray-700 dark:text-zinc-300">Area Color</label>
+                                    <input
+                                        type="color"
+                                        id="fillColor"
+                                        value={fillColor}
+                                        onChange={(e) => setFillColor(e.target.value)}
+                                        className="mt-1 h-10 w-full cursor-pointer rounded-md"
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Right Column: Map */}
+                        <div className="md:col-span-2">
+                            <APIProvider apiKey={process.env.NEXT_PUBLIC_Maps_API_KEY || ''}>
+                                <PlaceAutocomplete onPlaceSelect={(place) => setMapCenter(place)} />
+                                <div className="mt-2">
+                                    <MapComponent
+                                        mode={mode}
+                                        onPinChange={setPinCenter}
+                                        onPolygonChange={setPolygonPath}
+                                        initialPosition={mapCenter}
+                                        drawnPath={polygonPath}
+                                        fillColor={fillColor}
+                                    />
+                                </div>
+                            </APIProvider>
+                        </div>
                     </div>
                 </div>
 
-                <div className="mt-6 flex justify-end gap-3">
+                {/* Footer */}
+                <div className="flex justify-end gap-3 border-t border-gray-200 p-6 dark:border-zinc-800">
                     <button
                         onClick={onClose}
                         className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-300 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600"
