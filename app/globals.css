@@ -1,2 +1,16 @@
 @import "tailwindcss";
 
+html {
+    scroll-behavior: smooth;
+    overscroll-behavior: none;
+}
+
+/* In app/globals.css */
+.gm-style .gm-style-iw-c {
+    /* Your app's font */
+    font-family: '__Inter_Fallback_aaf875', '__Inter_Fallback_Fallback_aaf875';
+    padding: 12px !important;
+}
+.gm-style .gm-style-iw-d {
+    overflow: hidden !important;
+}

@@ -26,17 +26,38 @@ export type Event = {
     createdAt: string | { seconds: number; nanoseconds: number; };
 };
 
+type GeoPoint = {
+    lat: number;
+    lng: number;
+};
+
 export type Announcement = {
     id: string;
     authorName: string;
     authorId: string;
     title: string;
     content: string;
-    isPinned?: boolean; // Optional property for pinning
+    isPinned?: boolean;
     createdAt: {
         seconds: number;
         nanoseconds: number;
     };
+
+    // --- UPGRADED LOCATION FIELD for Polygons ---
+    location: {
+        type: 'pin' | 'polygon'; // The shape type
+        name: string;            // The main name, e.g., "Main Stage"
+        details: string;         // The text for the pop-up info box
+
+        // For a 'pin', this is the pin's location.
+        // For a 'polygon', this is the center point for the map view.
+        center: GeoPoint;
+
+        // --- Polygon-specific fields ---
+        path?: GeoPoint[];       // An array of vertices that define the shape
+        fillColor?: string;      // e.g., '#FF0000' for red
+        strokeColor?: string;    // e.g., '#000000' for black
+    } | null;
 };
 
 export type Invitation = {

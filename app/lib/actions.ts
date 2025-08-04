@@ -269,15 +269,14 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
     const session = await adminAuth.getSession();
     if (!session?.uid) return { message: "Authentication error." };
 
+    // 1. Update the schema to handle the complex location object
     const CreateAnnouncementSchema = z.object({
         title: z.string().min(1, { message: "Title is required." }),
         content: z.string().min(1, { message: "Content is required." }),
         eventId: z.string(),
         isPinned: z.preprocess((v) => v === 'on', z.boolean()),
-        // Add optional location fields
-        locationName: z.string().optional(),
-        locationLat: z.string().optional(),
-        locationLng: z.string().optional(),
+        // Location data is now sent as a single JSON string
+        location: z.string().optional(),
     });
 
     const validatedFields = CreateAnnouncementSchema.safeParse(Object.fromEntries(formData));
@@ -294,20 +293,25 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
         content,
         eventId,
         isPinned,
-        locationName,
-        locationLat,
-        locationLng
+        location: locationJson
     } = validatedFields.data;
 
-    const locationData = locationName && locationLat && locationLng
-        ? { name: locationName, lat: parseFloat(locationLat), lng: parseFloat(locationLng) }
-        : null;
+    // 2. Parse the JSON string to get the location object
+    let locationData = null;
+    if (locationJson) {
+        try {
+            locationData = JSON.parse(locationJson);
+        } catch (e) {
+            return { message: "Invalid location data format." };
+        }
+    }
 
     try {
         const eventDoc = await findEventAndVerifyAdmin(eventId, session.uid);
         const eventData = eventDoc.data()!;
         const announcementRef = eventDoc.ref.collection('announcements').doc();
 
+        // 3. Add the new, complex 'location' field to the data being saved
         await announcementRef.set({
             id: announcementRef.id,
             authorName: session.name || 'Admin',
@@ -315,10 +319,11 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
             title: announcementTitle,
             content: content,
             isPinned: isPinned,
-            location: locationData, // Save the location object
+            location: locationData, // Save the parsed location object
             createdAt: Timestamp.now(),
         });
 
+        // ... rest of the function (FCM notification)
         const topic = `event_${eventData.id.replace(/-/g, '_')}`;
         const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
         const messagePayload = {
