@@ -67,7 +67,7 @@ function PlaceAutocomplete({ onPlaceSelect }: PlaceAutocompleteProps) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Goog-Api-Key': process.env.NEXT_PUBLIC_Maps_API_KEY || '',
+                    'X-Goog-Api-Key': process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
                 },
                 body: JSON.stringify({ input: text }),
             });
@@ -224,7 +224,7 @@ function MapComponent({ mode, onPinChange, onPolygonChange, initialPosition, dra
             disableDefaultUI={true}
             onClick={handleMapClick}
             className="h-64 w-full rounded-md md:h-80" // Responsive height
-            mapId={process.env.NEXT_PUBLIC_Maps_ID}
+            mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_ID}
         >
             {mode === 'pin' && markerPos && <AdvancedMarker position={markerPos} />}
         </Map>
