@@ -8,8 +8,9 @@ export async function middleware(request: NextRequest) {
 
     // If there's no session, they can only access public pages
     if (!sessionCookie) {
-        // FIX: Allow access to the homepage ('/') and login page.
-        const isPublicPage = url.pathname === '/' || url.pathname.startsWith('/login');
+        // FIX: Allow access to the homepage, login, AND public event pages.
+        const isPublicPage = url.pathname === '/' || url.pathname.startsWith('/login') || url.pathname.startsWith('/e/');
+
         return isPublicPage
             ? NextResponse.next()
             : NextResponse.redirect(new URL('/login', url));
@@ -35,7 +36,9 @@ export async function middleware(request: NextRequest) {
             }
         } else {
             // If profile is incomplete, force them to the complete-profile page
-            if (!url.pathname.startsWith('/complete-profile')) {
+            // Allow access to /dashboard/invitations if profile is incomplete
+            const isAllowedOnboardingRoute = url.pathname.startsWith('/complete-profile') || url.pathname.startsWith('/dashboard/invitations');
+            if (!isAllowedOnboardingRoute) {
                 return NextResponse.redirect(new URL('/complete-profile', url));
             }
         }
