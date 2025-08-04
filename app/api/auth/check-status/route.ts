@@ -1,67 +1,39 @@
-// middleware.ts
-import { NextResponse, type NextRequest } from 'next/server';
+// app/api/auth/check-status/route.ts
 
-export async function middleware(request: NextRequest) {
-    const url = request.nextUrl;
+import { type NextRequest, NextResponse } from 'next/server';
+import { getAuth } from 'firebase-admin/auth';
+// REMOVE client SDK imports: import { doc, getDoc } from 'firebase/firestore';
+import { adminDb } from '@/app/lib/firebase-server';
+
+// No need to call initFirebaseAdminApp() here as it's called once in firebase-server.ts
+
+export async function GET(request: NextRequest) {
     const sessionCookie = request.cookies.get('session')?.value;
 
-    // --- Define Protected and Special Routes ---
-    const isDashboardRoute = url.pathname.startsWith('/dashboard');
-    const isCompleteProfileRoute = url.pathname === '/complete-profile';
-    const isLoginRoute = url.pathname === '/login';
-
-    // --- If a session cookie exists, verify it and check profile status ---
-    if (sessionCookie) {
-        // Construct the absolute URL for the API call
-        const checkStatusUrl = new URL('/api/auth/check-status', request.url);
-
-        // Forward the session cookie to the API route
-        const response = await fetch(checkStatusUrl, {
-            headers: {
-                'Cookie': `session=${sessionCookie}`
-            }
-        });
-
-        const { isAuthenticated, isProfileComplete } = await response.json();
-
-        // --- Routing Logic Based on Auth and Profile Status ---
-
-        // 1. If the session is invalid/expired, clear the cookie and redirect to login
-        if (!isAuthenticated) {
-            const response = NextResponse.redirect(new URL('/login?error=session_expired', request.url));
-            response.cookies.delete('session'); // Clear the invalid cookie
-            return response;
-        }
-
-        // 2. If authenticated but profile is incomplete
-        if (!isProfileComplete) {
-            // Allow access ONLY to the complete-profile page
-            if (!isCompleteProfileRoute) {
-                return NextResponse.redirect(new URL('/complete-profile', request.url));
-            }
-        }
-
-        // 3. If authenticated and profile IS complete
-        if (isProfileComplete) {
-            // Redirect away from login or complete-profile pages if they try to access them
-            if (isLoginRoute || isCompleteProfileRoute) {
-                return NextResponse.redirect(new URL('/dashboard', request.url));
-            }
-        }
-    }
-    // --- If no session cookie exists ---
-    else {
-        // Protect the dashboard route
-        if (isDashboardRoute) {
-            return NextResponse.redirect(new URL('/login', request.url));
-        }
+    if (!sessionCookie) {
+        return NextResponse.json({ isAuthenticated: false, isProfileComplete: false });
     }
 
-    // Allow the request to proceed if no redirect rules matched
-    return NextResponse.next();
+    try {
+        const decodedToken = await getAuth().verifySessionCookie(sessionCookie, true);
+
+        // CORRECT WAY to reference a doc with the Admin SDK
+        const userDocRef = adminDb.doc(`users/${decodedToken.uid}`);
+
+        // CORRECT WAY to get the doc snapshot with the Admin SDK
+        const userDoc = await userDocRef.get();
+
+        if (!userDoc.exists) {
+            // User is authenticated but hasn't completed their profile
+            return NextResponse.json({ isAuthenticated: true, isProfileComplete: false });
+        }
+
+        // User is fully authenticated and has a profile
+        return NextResponse.json({ isAuthenticated: true, isProfileComplete: true });
+
+    } catch (error) {
+        console.error("Check-status error:", error);
+        // Session cookie is invalid or expired
+        return NextResponse.json({ isAuthenticated: false, isProfileComplete: false });
+    }
 }
-
-// This config remains the same
-export const config = {
-    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
-};
