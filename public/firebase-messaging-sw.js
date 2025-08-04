@@ -2,12 +2,13 @@ importScripts("https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"
 importScripts("https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js");
 
 const firebaseConfig = {
-    apiKey: "AIzaSyByUI63RS43luFj4muI6wJ63Oi_r-oiUB0",
-    authDomain: "luna-7e694.firebaseapp.com",
-    projectId: "luna-7e694",
-    storageBucket: "luna-7e694.appspot.com",
-    messagingSenderId: "229790199796",
-    appId: "1:229790199796:web:00b4907b32d2f25c5093a1",
+    apiKey: "AIzaSyCJ0DHebGc9fd5WLD6DF_tp8se7CGQRbiQ",
+    authDomain: "luna-895ae.firebaseapp.com",
+    projectId: "luna-895ae",
+    storageBucket: "luna-895ae.firebasestorage.app",
+    messagingSenderId: "430728041821",
+    appId: "1:430728041821:web:78446a6c84672f8c5404b4",
+    measurementId: "G-P0G1P8J529"
 };
 
 if (!firebase.apps.length) {
