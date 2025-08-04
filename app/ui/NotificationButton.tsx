@@ -84,7 +84,7 @@ export default function NotificationButton({ eventId }: { eventId: string }) {
         return <StatusBadge icon={ExclamationTriangleIcon} message="Notification permissions are blocked." className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300" />;
     }
     if (status === 'unsupported') {
-        return <StatusBadge icon={XCircleIcon} message="Notifications are not supported on this browser." className="bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300" />;
+        return <StatusBadge icon={XCircleIcon} message="Notifications are not supported on this device(iOS)." className="bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300" />;
     }
 
     return (

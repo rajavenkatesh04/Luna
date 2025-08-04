@@ -12,6 +12,7 @@ import NotificationButton from "@/app/ui/NotificationButton";
 import { AnnouncementsFeedSkeleton } from '@/app/ui/skeletons';
 import { formatRelativeDate } from '@/app/lib/utils';
 import { APIProvider, Map, AdvancedMarker, useMap, InfoWindow } from '@vis.gl/react-google-maps';
+import NavbarForSRM from "@/app/ui/NavbarForSRM";
 
 // --- Reusable Expandable Text Component ---
 function ExpandableText({ text, maxLines = 2 }: { text: string; maxLines?: number }) {
@@ -56,7 +57,7 @@ function ExpandableText({ text, maxLines = 2 }: { text: string; maxLines?: numbe
 function EventHeader({ event }: { event: Event }) {
     return (
         <header className="mb-8 border-b border-gray-200/80 pb-8 dark:border-zinc-800/50">
-            <h1 className="text-4xl font-bold tracking-wide text-transparent bg-gradient-to-r from-blue-500 to-teal-400 bg-clip-text mb-4">
+            <h1 className="text-4xl font-bold tracking-wide text-transparent bg-gradient-to-r from-blue-500 to-teal-300 bg-clip-text mb-4">
                 {event.title}
             </h1>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 dark:text-zinc-500">
@@ -378,7 +379,7 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
     // Main page render
     return (
         <div className="bg-slate-50 text-slate-800 dark:bg-zinc-950 dark:text-slate-200">
-            <Navbar />
+            <NavbarForSRM />
             <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
                 {event && <EventHeader event={event} />}
 
@@ -413,7 +414,7 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
             {/* Footer */}
             <footer className="w-full border-t border-gray-200/80 bg-slate-100/50 py-6 dark:border-zinc-800/50 dark:bg-zinc-950/50">
                 <div className="mx-auto flex max-w-6xl items-center justify-center px-6 text-sm text-gray-500 dark:text-zinc-500">
-                    <a href={process.env.NEXT_PUBLIC_LUNA_URL || '#'} target="_blank">
+                    <a href="/" target="_blank">
                         <div className="flex items-center gap-2">
                             <SparklesIcon className="h-4 w-4 text-indigo-500" />
                             <span>Powered by <span className="font-medium text-gray-700 dark:text-zinc-300">Luna</span></span>
