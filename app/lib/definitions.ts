@@ -58,6 +58,14 @@ export type Announcement = {
         fillColor?: string;      // e.g., '#FF0000' for red
         strokeColor?: string;    // e.g., '#000000' for black
     } | null;
+
+    // --- NEW FIELD for attachments ---
+    attachment: {
+        url: string;      // The public URL to view/download the file
+        path: string;     // The full path in Firebase Storage (e.g., "events/eventId/attachments/file.pdf")
+        name: string;     // The original name of the file (e.g., "event-schedule.pdf")
+        type: string;     // The file's MIME type (e.g., "application/pdf")
+    } | null;
 };
 
 export type Invitation = {

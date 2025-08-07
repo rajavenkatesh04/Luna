@@ -4,9 +4,18 @@ import { useEffect, useState, useRef, use } from 'react';
 import { db } from '@/app/lib/firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { Announcement, Event } from '@/app/lib/definitions';
-import { UserCircleIcon, CalendarIcon, SparklesIcon, MapPinIcon } from '@heroicons/react/24/outline';
+import {
+    UserCircleIcon,
+    CalendarIcon,
+    SparklesIcon,
+    MapPinIcon,
+    PaperClipIcon,
+    EyeIcon,
+    ArrowDownTrayIcon,
+    DocumentTextIcon,
+    // PhotoIcon - Removed this unused import
+} from '@heroicons/react/24/outline';
 import { BookmarkIcon } from '@heroicons/react/24/solid';
-import Navbar from "@/app/ui/Navbar";
 import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
 import NotificationButton from "@/app/ui/NotificationButton";
 import { AnnouncementsFeedSkeleton } from '@/app/ui/skeletons';
@@ -53,6 +62,100 @@ function ExpandableText({ text, maxLines = 2 }: { text: string; maxLines?: numbe
     );
 }
 
+// --- REDESIGNED AttachmentCard with Previews (FIXED VERSION) ---
+function AttachmentCard({ attachment }: { attachment: Announcement['attachment'] }) {
+    // CRITICAL FIX: Move ALL hooks to the very top, before any conditional logic
+    // This ensures React can track hooks consistently across all renders
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Now we can safely do our conditional return after all hooks are declared
+    if (!attachment) return null;
+
+    // These variables can be defined after the null check since they're not hooks
+    const isImage = attachment.type.startsWith('image/');
+    const isPdf = attachment.type === 'application/pdf';
+
+    const renderPreview = () => {
+        if (isImage) {
+            return (
+                <img
+                    src={attachment.url}
+                    alt={attachment.name}
+                    className="h-full w-full object-cover"
+                />
+            );
+        }
+        // For non-image files, show an icon
+        const Icon = isPdf ? DocumentTextIcon : PaperClipIcon;
+        return (
+            <div className="flex h-full w-full items-center justify-center bg-slate-100 dark:bg-zinc-800">
+                <Icon className="h-10 w-10 text-slate-400 dark:text-zinc-500" />
+            </div>
+        );
+    };
+
+    const PreviewModal = () => (
+        <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => setIsModalOpen(false)}
+        >
+            <div className="relative bg-white dark:bg-zinc-900 rounded-lg max-w-4xl max-h-[90vh] w-full h-full flex flex-col" onClick={(e) => e.stopPropagation()}>
+                <div className="flex justify-between items-center p-4 border-b dark:border-zinc-700">
+                    <h3 className="font-semibold text-lg dark:text-white truncate">{attachment.name}</h3>
+                    <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white">&times;</button>
+                </div>
+                <div className="flex-grow overflow-auto">
+                    {isImage ? (
+                        <img src={attachment.url} alt={attachment.name} className="max-w-full max-h-full mx-auto my-auto object-contain" />
+                    ) : isPdf ? (
+                        <iframe src={attachment.url} className="w-full h-full" title={attachment.name} />
+                    ) : (
+                        <div className="p-8 text-center">
+                            <p className="dark:text-white">Preview is not available for this file type.</p>
+                            <a href={attachment.url} download={attachment.name} className="mt-4 inline-block rounded-md bg-indigo-600 px-4 py-2 text-white">Download File</a>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="mt-5 mb-5">
+            <div className="rounded-lg border border-gray-200/80 dark:border-zinc-800/50 overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-3">
+                    {/* Preview Section */}
+                    <div className="md:col-span-1 h-32 md:h-auto bg-slate-50 dark:bg-zinc-800/50">
+                        {renderPreview()}
+                    </div>
+                    {/* Info and Actions Section */}
+                    <div className="md:col-span-2 p-4 flex flex-col justify-center">
+                        <h4 className="font-semibold text-gray-800 dark:text-zinc-100 flex items-center gap-2">
+                            <PaperClipIcon className="h-5 w-5 text-gray-400 dark:text-zinc-500" />
+                            <span>Attachment</span>
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-zinc-400 truncate mt-1" title={attachment.name}>
+                            {attachment.name}
+                        </p>
+                        <div className="flex items-center gap-3 mt-4">
+                            <button onClick={() => setIsModalOpen(true)} className="flex items-center justify-center gap-2 rounded-md bg-white dark:bg-zinc-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-600">
+                                <EyeIcon className="h-4 w-4" />
+                                View
+                            </button>
+                            <a href={attachment.url} download={attachment.name} className="flex items-center justify-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500">
+                                <ArrowDownTrayIcon className="h-4 w-4" />
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {isModalOpen && <PreviewModal />}
+        </div>
+    );
+}
+
+
 // --- Event Header Component ---
 function EventHeader({ event }: { event: Event }) {
     return (
@@ -63,7 +166,7 @@ function EventHeader({ event }: { event: Event }) {
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 dark:text-zinc-500">
                 <div className="flex items-center gap-2">
                     <MapPinIcon className="h-4 w-4" />
-                    <span>Chennai, India</span>
+                    <span>Kattankulathur, Chennai.</span>
                 </div>
             </div>
             {event.description && (
@@ -89,26 +192,16 @@ function EventInfoCard({ eventId }: { eventId: string }) {
 // --- A dedicated map component for the announcement card ---
 function AnnouncementMap({ location }: { location: Announcement['location'] }) {
     const map = useMap();
-    // These state variables track the info window that appears when users click on map elements
     const [infoWindow, setInfoWindow] = useState<Announcement['location'] | null>(null);
     const [infoWindowPos, setInfoWindowPos] = useState<google.maps.LatLng | null>(null);
-
-    // CRITICAL FIX: Properly type the ref to hold a Google Maps Polygon object or null
-    // This tells TypeScript that polygonRef can contain either a Polygon instance or null
     const polygonRef = useRef<google.maps.Polygon | null>(null);
 
     useEffect(() => {
-        // Early return if we don't have the required dependencies
         if (!map || !location) return;
-
-        // Clean up any existing polygon before creating a new one
-        // Now TypeScript knows that when polygonRef.current is truthy, it's definitely a Polygon
         if (polygonRef.current) {
-            polygonRef.current.setMap(null); // Remove from map
-            polygonRef.current = null; // Clear the reference
+            polygonRef.current.setMap(null);
+            polygonRef.current = null;
         }
-
-        // Create a new polygon if the location type is polygon and has path data
         if (location.type === 'polygon' && location.path) {
             const poly = new google.maps.Polygon({
                 paths: location.path,
@@ -117,15 +210,8 @@ function AnnouncementMap({ location }: { location: Announcement['location'] }) {
                 strokeColor: location.strokeColor || '#FF0000',
                 strokeWeight: 2,
             });
-
-            // Add the polygon to the map
             poly.setMap(map);
-
-            // Store the polygon reference so we can clean it up later
             polygonRef.current = poly;
-
-            // CRITICAL FIX: Use the correct event type for Google Maps polygon clicks
-            // We use a generic event type that has the latLng property we need
             poly.addListener('click', (e: { latLng: google.maps.LatLng }) => {
                 setInfoWindowPos(e.latLng);
                 setInfoWindow(location);
@@ -133,10 +219,8 @@ function AnnouncementMap({ location }: { location: Announcement['location'] }) {
         }
     }, [map, location]);
 
-    // Handle marker clicks for pin-type locations
     const handleMarkerClick = () => {
         if (location?.center) {
-            // Convert the center coordinates to a LatLng object for the info window
             const latLng = new google.maps.LatLng(location.center.lat, location.center.lng);
             setInfoWindowPos(latLng);
             setInfoWindow(location);
@@ -145,12 +229,9 @@ function AnnouncementMap({ location }: { location: Announcement['location'] }) {
 
     return (
         <>
-            {/* Render a marker if the location is a pin type */}
             {location?.type === 'pin' && location.center && (
                 <AdvancedMarker position={location.center} onClick={handleMarkerClick} />
             )}
-
-            {/* Show info window when user clicks on map elements */}
             {infoWindow && infoWindowPos && (
                 <InfoWindow position={infoWindowPos} onCloseClick={() => setInfoWindow(null)}>
                     <div className="p-2 text-black">
@@ -169,11 +250,7 @@ function AnnouncementCard({ announcement, isRecent }: { announcement: Announceme
 
     useEffect(() => {
         if (isRecent) {
-            // Hide the "New" badge after 2 minutes to prevent visual clutter
-            const timer = setTimeout(() => {
-                setShowNewBadge(false);
-            }, 2 * 60 * 1000); // 2 minutes
-
+            const timer = setTimeout(() => setShowNewBadge(false), 2 * 60 * 1000); // 2 minutes
             return () => clearTimeout(timer);
         }
     }, [isRecent]);
@@ -197,7 +274,7 @@ function AnnouncementCard({ announcement, isRecent }: { announcement: Announceme
                         </div>
                     )}
                 </div>
-                <h2 className="text-xl text-gray-900 dark:text-zinc-100">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-zinc-100">
                     {announcement.title}
                 </h2>
             </header>
@@ -206,9 +283,11 @@ function AnnouncementCard({ announcement, isRecent }: { announcement: Announceme
                 <ExpandableText text={announcement.content} maxLines={4} />
             </div>
 
-            {/* Render map section if announcement has location data */}
+            {/* RENDER THE ATTACHMENT AND LOCATION CARDS */}
+            <AttachmentCard attachment={announcement.attachment} />
+
             {announcement.location && (
-                <div className="mb-5">
+                <div className="mt-5 mb-5">
                     <h4 className="text-sm font-medium text-gray-800 dark:text-zinc-200 flex items-center gap-1.5 mb-2">
                         <MapPinIcon className="h-4 w-4" />
                         {announcement.location.name}
@@ -232,7 +311,6 @@ function AnnouncementCard({ announcement, isRecent }: { announcement: Announceme
                             <div className="text-center">
                                 <MapPinIcon className="h-8 w-8 text-gray-400 dark:text-zinc-500 mx-auto mb-2" />
                                 <p className="text-sm text-gray-500 dark:text-zinc-400">Map unavailable</p>
-                                <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">Google Maps API key not configured</p>
                             </div>
                         </div>
                     )}
@@ -279,7 +357,6 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
     const resolvedParams = use(params);
     const eventId = resolvedParams.id;
 
-    // State management for the page
     const [event, setEvent] = useState<Event | null>(null);
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -292,14 +369,12 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
 
         let unsubscribe = () => {};
 
-        // Load initial event data and set up real-time announcements subscription
         getInitialEventData(eventId)
             .then(data => {
                 if (data && data.eventData && data.eventPath) {
                     setEvent(data.eventData);
                     setIsLoading(false);
 
-                    // Set up real-time listener for announcements
                     const announcementsQuery = query(
                         collection(db, `${data.eventPath}/announcements`),
                         orderBy('createdAt', 'desc')
@@ -311,14 +386,12 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                             ...doc.data()
                         } as Announcement));
 
-                        // Sort announcements: pinned first, then by creation time
                         announcementsData.sort((a, b) => {
                             if (a.isPinned && !b.isPinned) return -1;
                             if (!a.isPinned && b.isPinned) return 1;
                             return b.createdAt.seconds - a.createdAt.seconds;
                         });
 
-                        // Track the most recent announcement time for "new" badge logic
                         if (announcementsData.length > 0) {
                             const mostRecentTime = Math.max(...announcementsData.map(a => a.createdAt.seconds));
                             if (mostRecentTime > latestAnnouncementTime) {
@@ -343,20 +416,17 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
             setIsLoading(false);
         });
 
-        // Cleanup function to unsubscribe from real-time updates
         return () => unsubscribe();
     }, [eventId, latestAnnouncementTime]);
 
-    // Determine if an announcement should show the "new" badge
     const isAnnouncementRecent = (announcement: Announcement): boolean => {
         const currentTime = Date.now() / 1000;
         const announcementTime = announcement.createdAt.seconds;
-        const isWithinTimeWindow = (currentTime - announcementTime) < (5 * 60); // Within 5 minutes
-        const isAmongLatest = announcementTime >= latestAnnouncementTime - 60; // Within 1 minute of latest
+        const isWithinTimeWindow = (currentTime - announcementTime) < (5 * 60);
+        const isAmongLatest = announcementTime >= latestAnnouncementTime - 60;
         return isWithinTimeWindow && isAmongLatest;
     };
 
-    // Loading state
     if (isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-slate-50 text-gray-700 dark:bg-zinc-950 dark:text-zinc-300">
@@ -366,7 +436,6 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
         );
     }
 
-    // Error state
     if (error) {
         return (
             <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4 text-center dark:bg-zinc-950">
@@ -376,7 +445,6 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
         );
     }
 
-    // Main page render
     return (
         <div className="bg-slate-50 text-slate-800 dark:bg-zinc-950 dark:text-slate-200">
             <NavbarForSRM />
@@ -384,12 +452,10 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                 {event && <EventHeader event={event} />}
 
                 <main className="grid grid-cols-1 gap-12 md:grid-cols-3">
-                    {/* Sidebar with event info */}
                     <div className="md:col-span-1">
                         {eventId && <EventInfoCard eventId={eventId} />}
                     </div>
 
-                    {/* Main content area with announcements */}
                     <section className="space-y-6 md:col-span-2">
                         {isFeedLoading ? (
                             <AnnouncementsFeedSkeleton />
@@ -411,7 +477,6 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                 </main>
             </div>
 
-            {/* Footer */}
             <footer className="w-full border-t border-gray-200/80 bg-slate-100/50 py-6 dark:border-zinc-800/50 dark:bg-zinc-950/50">
                 <div className="mx-auto flex max-w-6xl items-center justify-center px-6 text-sm text-gray-500 dark:text-zinc-500">
                     <a href="/" target="_blank">

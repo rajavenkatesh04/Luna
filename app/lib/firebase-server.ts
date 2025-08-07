@@ -1,6 +1,7 @@
 import admin from 'firebase-admin';
 import { getMessaging } from 'firebase-admin/messaging';
-import { getFirestore } from 'firebase-admin/firestore'; // Import admin getFirestore
+import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage'; // 1. Import getStorage
 
 export function initFirebaseAdminApp(): admin.app.App {
     if (admin.apps.length > 0) {
@@ -13,6 +14,8 @@ export function initFirebaseAdminApp(): admin.app.App {
     };
     const app = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
+        // 2. Add the storage bucket URL to the config
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
     return app;
 }
@@ -22,3 +25,4 @@ const adminApp = initFirebaseAdminApp();
 // Export all the admin services we need
 export const adminMessaging = getMessaging(adminApp);
 export const adminDb = getFirestore(adminApp);
+export const adminStorage = getStorage(adminApp); // 3. Initialize and export adminStorage

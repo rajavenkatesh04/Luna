@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getMessaging } from "firebase/messaging";
+import { getStorage } from "firebase/storage"; // 1. Import getStorage
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -17,6 +18,8 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app); // 2. Initialize Storage
 const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
 
-export { app, db, auth, messaging };
+// 3. Export storage alongside the other services
+export { app, db, auth, storage, messaging };

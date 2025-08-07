@@ -1,19 +1,15 @@
-// app/lib/actions.ts
 "use server";
 
 import { z } from "zod";
 import { nanoid } from 'nanoid';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/app/lib/firebase'; // Client auth is ONLY for the signOut function
+import { auth } from '@/app/lib/firebase';
 import { auth as adminAuth } from '@/app/lib/firebase-admin';
-import admin from 'firebase-admin';
-import { adminDb, adminMessaging } from "@/app/lib/firebase-server"; // USE THE ADMIN DB
-import { Timestamp, FieldValue, DocumentSnapshot  } from 'firebase-admin/firestore'; // USE THE ADMIN SDK TOOLS
+import { adminDb, adminMessaging, adminStorage } from "@/app/lib/firebase-server"; // Ensure adminStorage is imported
+import { Timestamp, FieldValue, DocumentSnapshot  } from 'firebase-admin/firestore';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-
-// NOTE: All database operations in this file now consistently use the Admin SDK (`adminDb`).
 
 // =================================================================================
 // --- USER & PROFILE ACTIONS ---
@@ -35,13 +31,11 @@ export async function completeUserProfile(
     prevState: CompleteProfileState | null,
     formData: FormData
 ): Promise<CompleteProfileState> {
-    // 1. Get the authenticated user on the SERVER
     const session = await adminAuth.getSession();
     if (!session?.uid || !session.email) {
         return { message: "Authentication error. Please sign in again." };
     }
 
-    // 2. Validate the form data on the SERVER
     const validatedFields = CompleteProfileSchema.safeParse({
         organizationName: formData.get('organizationName'),
     });
@@ -55,19 +49,15 @@ export async function completeUserProfile(
     const { organizationName } = validatedFields.data;
 
     try {
-        // 3. Use the ADMIN SDK to write to the database
         const userDocRef = adminDb.collection('users').doc(session.uid);
         const userDoc = await userDocRef.get();
 
-        // Prevent re-running this action if the profile is already complete
         if (userDoc.exists) {
             console.log("User profile already exists, redirecting to dashboard.");
             redirect('/dashboard');
         }
 
-        const batch = adminDb.batch(); // Use ADMIN batch
-
-        // Create the organization
+        const batch = adminDb.batch();
         const orgRef = adminDb.collection('organizations').doc();
         batch.set(orgRef, {
             name: organizationName,
@@ -75,7 +65,6 @@ export async function completeUserProfile(
             subscriptionTier: 'free',
         });
 
-        // Create the user profile
         batch.set(userDocRef, {
             uid: session.uid,
             email: session.email,
@@ -91,7 +80,6 @@ export async function completeUserProfile(
         return { message: "Failed to create your workspace. Please try again." };
     }
 
-    // 4. Redirect on success
     revalidatePath('/dashboard');
     redirect('/dashboard');
 }
@@ -102,20 +90,14 @@ export async function completeUserProfile(
 
 export async function logout() {
     try {
-        // This signs the user out of the client-side authentication state.
         await signOut(auth);
-        // This clears the server-side session cookie.
         const cookieStore = await cookies();
         cookieStore.set('session', '', { maxAge: -1 });
     } catch (error) {
         console.error('Logout Error:', error);
     }
-    // Always redirect to login after attempting to log out
     redirect('/login');
 }
-
-
-
 
 // =================================================================================
 // --- EVENT ACTIONS ---
@@ -183,11 +165,6 @@ export async function createEvent(prevState: CreateEventState, formData: FormDat
 
 
 export type UpdateEventState = CreateEventState;
-const UpdateEventSchema = z.object({
-    id: z.string(),
-    title: z.string().min(3, { message: "Title must be at least 3 characters." }),
-    description: z.string().optional(),
-});
 
 export async function updateEvent(prevState: UpdateEventState, formData: FormData): Promise<UpdateEventState> {
     const session = await adminAuth.getSession();
@@ -208,15 +185,13 @@ export async function updateEvent(prevState: UpdateEventState, formData: FormDat
     redirect(`/dashboard/events/${eventId}`);
 }
 
-
-
 export type DeleteEventState = {
-    // Change 'null' to 'undefined' to match useActionState
     message?: string;
     errors?: {
         server?: string[];
     };
 };
+
 export async function deleteEvent(prevState: DeleteEventState, formData: FormData): Promise<DeleteEventState> {
     const session = await adminAuth.getSession();
     if (!session?.uid) return { message: "Authentication error." };
@@ -225,7 +200,6 @@ export async function deleteEvent(prevState: DeleteEventState, formData: FormDat
     if (!eventId) return { message: "Event ID is missing." };
 
     try {
-        // Use the event's short ID to find it
         const eventDocSnapshot = await adminDb.collectionGroup('events').where('id', '==', eventId).limit(1).get();
         if (eventDocSnapshot.empty) throw new Error("Event not found.");
         const eventDoc = eventDocSnapshot.docs[0];
@@ -257,26 +231,17 @@ export type CreateAnnouncementState = {
     message?: string | null;
 };
 
-const CreateAnnouncementSchema = z.object({
-    title: z.string().min(1, { message: "Title is required." }),
-    content: z.string().min(1, { message: "Content is required." }),
-    eventId: z.string(),
-    organizationId: z.string(),
-    isPinned: z.preprocess((value) => value === 'on', z.boolean()),
-});
-
 export async function createAnnouncement(prevState: CreateAnnouncementState, formData: FormData): Promise<CreateAnnouncementState> {
     const session = await adminAuth.getSession();
     if (!session?.uid) return { message: "Authentication error." };
 
-    // 1. Update the schema to handle the complex location object
     const CreateAnnouncementSchema = z.object({
-        title: z.string().min(1, { message: "Title is required." }),
-        content: z.string().min(1, { message: "Content is required." }),
+        title: z.string().min(1),
+        content: z.string().min(1),
         eventId: z.string(),
         isPinned: z.preprocess((v) => v === 'on', z.boolean()),
-        // Location data is now sent as a single JSON string
         location: z.string().optional(),
+        attachment: z.string().optional(),
     });
 
     const validatedFields = CreateAnnouncementSchema.safeParse(Object.fromEntries(formData));
@@ -288,21 +253,25 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
         };
     }
 
-    const {
-        title: announcementTitle,
-        content,
-        eventId,
-        isPinned,
-        location: locationJson
-    } = validatedFields.data;
+    const { title: announcementTitle, content, eventId, isPinned, location: locationJson, attachment: attachmentJson } = validatedFields.data;
 
-    // 2. Parse the JSON string to get the location object
     let locationData = null;
     if (locationJson) {
         try {
             locationData = JSON.parse(locationJson);
-        } catch (e) {
+        } catch {
+            // Fixed: Removed unused 'e' variable that was causing a warning
             return { message: "Invalid location data format." };
+        }
+    }
+
+    let attachmentData = null;
+    if (attachmentJson) {
+        try {
+            attachmentData = JSON.parse(attachmentJson);
+        } catch {
+            // Fixed: Removed unused 'e' variable that was causing a warning
+            return { message: "Invalid attachment data format." };
         }
     }
 
@@ -311,7 +280,6 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
         const eventData = eventDoc.data()!;
         const announcementRef = eventDoc.ref.collection('announcements').doc();
 
-        // 3. Add the new, complex 'location' field to the data being saved
         await announcementRef.set({
             id: announcementRef.id,
             authorName: session.name || 'Admin',
@@ -319,20 +287,18 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
             title: announcementTitle,
             content: content,
             isPinned: isPinned,
-            location: locationData, // Save the parsed location object
+            location: locationData,
+            attachment: attachmentData,
             createdAt: Timestamp.now(),
         });
 
-        // ... rest of the function (FCM notification)
         const topic = `event_${eventData.id.replace(/-/g, '_')}`;
         const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
         const messagePayload = {
             topic: topic,
-            notification: {
-                title: eventData.title || 'Event Update',
-                body: announcementTitle
-            },
             data: {
+                title: eventData.title || 'Event Update',
+                body: announcementTitle,
                 url: `${baseUrl}/e/${eventData.id}`
             }
         };
@@ -347,31 +313,51 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
     return { message: `Successfully created announcement.` };
 }
 
-
 export async function deleteAnnouncement(formData: FormData) {
     const session = await adminAuth.getSession();
     if (!session?.uid) throw new Error("Not authenticated.");
 
-    // Updated Schema: No longer needs orgId from the client
     const { eventId, announcementId } = z.object({
-        eventId: z.string(), // This is the Firestore Document ID
+        eventId: z.string(),
         announcementId: z.string()
     }).parse(Object.fromEntries(formData));
 
     try {
-        // Step 1: Find the event and verify the user is an admin
         const eventDoc = await findEventAndVerifyAdmin(eventId, session.uid);
+        const announcementRef = eventDoc.ref.collection('announcements').doc(announcementId);
+        const announcementDoc = await announcementRef.get();
 
-        // Step 2: Delete the specific announcement
-        await eventDoc.ref.collection('announcements').doc(announcementId).delete();
+        if (!announcementDoc.exists) {
+            throw new Error("Announcement not found.");
+        }
+
+        // CRITICAL FIX: Properly handle the potentially undefined data
+        // TypeScript knows that .data() can return undefined, so we need to check for it
+        const announcementData = announcementDoc.data();
+
+        // This is the defensive programming approach - always verify data exists
+        // before trying to access its properties
+        if (announcementData && announcementData.attachment && announcementData.attachment.path) {
+            try {
+                await adminStorage.bucket().file(announcementData.attachment.path).delete();
+                console.log(`Successfully deleted attachment: ${announcementData.attachment.path}`);
+            } catch (storageError) {
+                console.error("Failed to delete attachment from Storage:", storageError);
+                // Note: We don't throw here because we still want to delete the announcement
+                // even if the file deletion fails
+            }
+        }
+
+        // Delete the announcement document regardless of attachment deletion success
+        await announcementRef.delete();
 
         revalidatePath(`/dashboard/events/${eventId}`);
     } catch (error) {
         console.error("Delete Announcement Error:", error);
-        // In a real app, you might want to return an error to the UI
+        // In a real application, you might want to throw this error or handle it differently
+        // depending on your error handling strategy
     }
 }
-
 
 // =================================================================================
 // --- INVITATION ACTIONS ---
@@ -379,15 +365,12 @@ export async function deleteAnnouncement(formData: FormData) {
 
 export type SendInviteState = { message: string | null; };
 
-// In app/lib/actions.ts
-
 export async function sendInvite(prevState: SendInviteState, formData: FormData): Promise<SendInviteState> {
     const session = await adminAuth.getSession();
     if (!session) return { message: 'Not authenticated.' };
 
-    // The 'eventId' from the form is the short ID. The 'orgId' is no longer needed for the lookup.
     const validatedFields = z.object({
-        eventId: z.string(), // This is the short ID, e.g., "LEI504"
+        eventId: z.string(),
         inviteeEmail: z.string().email()
     }).safeParse(Object.fromEntries(formData));
 
@@ -395,11 +378,9 @@ export async function sendInvite(prevState: SendInviteState, formData: FormData)
     const { eventId, inviteeEmail } = validatedFields.data;
 
     try {
-        // Use the helper function to find the event and verify the current user is an admin.
-        // This fixes the "Event not found" error AND handles the security check in one go.
         const eventDoc = await findEventAndVerifyAdmin(eventId, session.uid);
         const eventSnap = eventDoc.data()!;
-        const orgId = eventDoc.ref.parent.parent!.id; // Get the orgId from the document path
+        const orgId = eventDoc.ref.parent.parent!.id;
 
         const usersRef = adminDb.collection('users');
         const userQuery = usersRef.where("email", "==", inviteeEmail).limit(1);
@@ -411,7 +392,6 @@ export async function sendInvite(prevState: SendInviteState, formData: FormData)
             return { message: 'This user is already an admin for this event.' };
         }
 
-        // Use the event's Firestore Document ID (eventDoc.id) for the query, not the short ID.
         const invitesRef = adminDb.collection('invitations');
         const invitesQuery = invitesRef.where("inviteeUid", "==", inviteeUser.uid).where("eventId", "==", eventDoc.id).where("status", "==", "pending").limit(1);
         const existingInviteSnap = await invitesQuery.get();
@@ -426,13 +406,12 @@ export async function sendInvite(prevState: SendInviteState, formData: FormData)
             inviteeEmail,
             inviteeUid: inviteeUser.uid,
             organizationId: orgId,
-            eventId: eventDoc.id, // Store the Firestore Document ID
+            eventId: eventDoc.id,
             eventTitle: eventSnap.title || 'an event',
             status: 'pending',
             createdAt: Timestamp.now(),
         });
 
-        // Use the event's short ID for the revalidation path
         revalidatePath(`/dashboard/events/${eventId}?tab=admins`);
         return { message: `Invite sent successfully to ${inviteeEmail}.` };
     } catch (error) {
@@ -490,11 +469,10 @@ export async function revokeInvite(formData: FormData) {
     const session = await adminAuth.getSession();
     if (!session) throw new Error("Not authenticated.");
 
-    const eventId = formData.get('eventId')?.toString(); // short ID
+    const eventId = formData.get('eventId')?.toString();
     const invitationId = formData.get('invitationId')?.toString();
     if (!invitationId || !eventId) throw new Error("Missing required fields.");
 
-    // Security Check: Verify user is an admin of the event before revoking
     await findEventAndVerifyAdmin(eventId, session.uid);
 
     await adminDb.doc(`invitations/${invitationId}`).delete();
@@ -505,34 +483,26 @@ export async function removeAdmin(formData: FormData) {
     const session = await adminAuth.getSession();
     if (!session) throw new Error("Not authenticated.");
 
-    const orgId = formData.get('orgId')?.toString();
     const eventId = formData.get('eventId')?.toString();
     const adminUidToRemove = formData.get('adminUidToRemove')?.toString();
 
-    if (!orgId || !eventId || !adminUidToRemove) {
+    if (!eventId || !adminUidToRemove) {
         throw new Error("Missing required fields.");
     }
 
     try {
-        const eventRef = adminDb.doc(`organizations/${orgId}/events/${eventId}`);
-        const eventSnap = await eventRef.get();
+        const eventDoc = await findEventAndVerifyAdmin(eventId, session.uid);
+        const eventData = eventDoc.data()!;
 
-        if (!eventSnap.exists) throw new Error("Event not found.");
-
-        const eventData = eventSnap.data()!;
-
-        // SECURITY CHECK: Only the owner of the event can remove an admin.
         if (eventData.ownerUid !== session.uid) {
             throw new Error("Only the event owner can remove admins.");
         }
 
-        // SECURITY CHECK: The owner cannot be removed.
         if (eventData.ownerUid === adminUidToRemove) {
             throw new Error("The event owner cannot be removed.");
         }
 
-        // Perform the update
-        await eventRef.update({
+        await eventDoc.ref.update({
             admins: FieldValue.arrayRemove(adminUidToRemove)
         });
 
@@ -540,7 +510,6 @@ export async function removeAdmin(formData: FormData) {
 
     } catch (error) {
         console.error("Remove Admin Error:", error);
-        // You can return an error message to the client if you use useActionState
     }
 }
 
@@ -556,15 +525,12 @@ export async function subscribeToTopic(token: string, eventId: string) {
     try {
         await adminMessaging.subscribeToTopic(token, topic);
 
-        // Use a collectionGroup query to find the event directly.
-        // This is much more efficient.
         const eventsQuery = adminDb.collectionGroup('events').where('id', '==', eventId).limit(1);
         const eventSnapshot = await eventsQuery.get();
 
         if (!eventSnapshot.empty) {
             const eventDoc = eventSnapshot.docs[0];
             const eventPath = eventDoc.ref.path;
-            // Save the token to the event's subscribers sub-collection
             await adminDb.doc(`${eventPath}/subscribers/${token}`).set({ subscribedAt: Timestamp.now() });
         } else {
             console.error(`Could not find event with short ID ${eventId} to save subscriber token.`);
@@ -605,21 +571,12 @@ async function deleteQueryBatch(query: FirebaseFirestore.Query, resolve: (value:
     });
     await batch.commit();
 
-    // Recurse on the same query to process next batch.
     process.nextTick(() => {
         deleteQueryBatch(query, resolve);
     });
 }
 
-
-/**
- * Finds an event by its short ID across all organizations and verifies
- * if the current user is an admin for that event.
- * @returns The event's DocumentSnapshot if found and authorized.
- * @throws An error if the event is not found or the user is not an admin.
- */
 async function findEventAndVerifyAdmin(eventId: string, userId: string): Promise<DocumentSnapshot> {
-    // FIX: Query by the 'id' field inside the document, not the document's path ID.
     const eventsQuery = adminDb.collectionGroup('events').where('id', '==', eventId).limit(1);
     const eventSnapshot = await eventsQuery.get();
 
