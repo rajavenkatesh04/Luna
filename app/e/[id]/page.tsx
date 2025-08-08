@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, use } from 'react';
 import { db } from '@/app/lib/firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { Announcement, Event } from '@/app/lib/definitions';
-import toast, { Toaster } from 'react-hot-toast'; // --- NEW --- Added react-hot-toast
+import toast, { Toaster } from 'react-hot-toast';
 import {
     UserCircleIcon,
     CalendarIcon,
@@ -62,9 +62,8 @@ function ExpandableText({ text, maxLines = 2 }: { text: string; maxLines?: numbe
     );
 }
 
-// --- MODIFIED AttachmentCard with Toasts and better Loading Indicators ---
+// --- MODIFIED AttachmentCard ---
 function AttachmentCard({ attachment }: { attachment: Announcement['attachment'] }) {
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
 
     if (!attachment) return null;
@@ -72,12 +71,12 @@ function AttachmentCard({ attachment }: { attachment: Announcement['attachment']
     const isImage = attachment.type.startsWith('image/');
     const isPdf = attachment.type === 'application/pdf';
 
-    // --- MODIFIED: Added toasts to download handler ---
     const handleDownload = async () => {
         setIsDownloading(true);
         const toastId = toast.loading('Starting download...');
         try {
             const response = await fetch(attachment.url);
+            if (!response.ok) throw new Error('Network response was not ok.');
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -91,29 +90,29 @@ function AttachmentCard({ attachment }: { attachment: Announcement['attachment']
             toast.success('Download started!', { id: toastId });
         } catch (error) {
             console.error('Download failed:', error);
-            toast.error('Download failed. Opening in new tab.', { id: toastId });
-            window.open(attachment.url, '_blank');
+            toast.error('Download failed. Please try again.', { id: toastId });
         } finally {
             setIsDownloading(false);
         }
     };
 
     const handleViewClick = () => {
-        setIsModalOpen(true);
-        if (isImage || isPdf) {
-            toast('Opening preview...');
-        } else {
-            toast.error('Preview is not available for this file type.');
+        if (!attachment?.url) {
+            toast.error('Attachment link is not available.');
+            return;
         }
-    }
+        toast('Opening in new tab...');
+        window.open(attachment.url, '_blank', 'noopener,noreferrer');
+    };
 
     const renderPreview = () => {
         if (isImage) {
             return (
+                // --- MODIFIED: Changed to object-contain to fit the image without cropping. ---
                 <img
                     src={attachment.url}
                     alt={attachment.name}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-contain"
                 />
             );
         }
@@ -125,57 +124,14 @@ function AttachmentCard({ attachment }: { attachment: Announcement['attachment']
         );
     };
 
-    const PreviewModal = () => {
-        const pdfPreviewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(attachment.url)}&embedded=true`;
-
-        return (
-            <div
-                className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
-                onClick={() => setIsModalOpen(false)}
-            >
-                <div className="relative bg-white dark:bg-zinc-900 rounded-lg max-w-4xl max-h-[90vh] w-full h-full flex flex-col" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-between items-center p-4 border-b dark:border-zinc-700">
-                        <h3 className="font-semibold text-lg dark:text-white truncate">{attachment.name}</h3>
-                        <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white text-2xl leading-none">×</button>
-                    </div>
-                    <div className="flex-grow overflow-auto">
-                        {isImage ? (
-                            <img src={attachment.url} alt={attachment.name} className="max-w-full max-h-full mx-auto my-auto object-contain p-2" />
-                        ) : isPdf ? (
-                            <iframe src={pdfPreviewUrl} className="w-full h-full" title={attachment.name} />
-                        ) : (
-                            <div className="p-8 text-center flex flex-col items-center justify-center h-full">
-                                <p className="dark:text-white mb-4">Preview is not available for this file type.</p>
-                                {/* --- MODIFIED: Replaced loading icon with LoadingSpinner component --- */}
-                                <button onClick={handleDownload} disabled={isDownloading} className="mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-white">
-                                    {isDownloading ? (
-                                        <div className="flex items-center justify-center">
-                                            <LoadingSpinner className="mr-2 h-5 w-5" />
-                                            <span>Downloading...</span>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <ArrowDownTrayIcon className="h-5 w-5" />
-                                            <span>Download File</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
     return (
         <div className="mt-5 mb-5">
             <div className="rounded-lg border border-gray-200/80 dark:border-zinc-800/50 overflow-hidden">
-                <div className="grid grid-cols-1 md:grid-cols-3">
-                    <div className="md:col-span-1 h-32 md:h-auto bg-slate-50 dark:bg-zinc-800/50">
+                <div className="grid grid-cols-3">
+                    <div className="col-span-1 bg-slate-100 dark:bg-zinc-900/50">
                         {renderPreview()}
                     </div>
-                    <div className="md:col-span-2 p-4 flex flex-col justify-center">
+                    <div className="col-span-2 p-4 flex flex-col justify-center">
                         <h4 className="font-semibold text-gray-800 dark:text-zinc-100 flex items-center gap-2">
                             <PaperClipIcon className="h-5 w-5 text-gray-400 dark:text-zinc-500" />
                             <span>Attachment</span>
@@ -183,13 +139,14 @@ function AttachmentCard({ attachment }: { attachment: Announcement['attachment']
                         <p className="text-sm text-gray-600 dark:text-zinc-400 truncate mt-1" title={attachment.name}>
                             {attachment.name}
                         </p>
-                        <div className="flex items-center gap-3 mt-4">
-                            {/* --- MODIFIED: Added toast to view button --- */}
-                            <button onClick={handleViewClick} className="flex items-center justify-center gap-2 rounded-md bg-white dark:bg-zinc-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-600">
+                        <div className="flex flex-col items-stretch gap-3 mt-4">
+                            <button
+                                onClick={handleViewClick}
+                                className="flex items-center justify-center gap-2 rounded-md bg-white dark:bg-zinc-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-600"
+                            >
                                 <EyeIcon className="h-4 w-4" />
                                 View
                             </button>
-                            {/* --- MODIFIED: Replaced loading icon with LoadingSpinner component --- */}
                             <button
                                 onClick={handleDownload}
                                 disabled={isDownloading}
@@ -211,11 +168,9 @@ function AttachmentCard({ attachment }: { attachment: Announcement['attachment']
                     </div>
                 </div>
             </div>
-            {isModalOpen && <PreviewModal />}
         </div>
     );
 }
-
 
 // --- Event Header Component (No changes) ---
 function EventHeader({ event }: { event: Event }) {
@@ -341,7 +296,7 @@ function AnnouncementCard({ announcement, isRecent }: { announcement: Announceme
             </header>
 
             <div className="mb-5 text-base">
-                <ExpandableText text={announcement.content} maxLines={4} />
+                <ExpandableText text={announcement.content} maxLines={3} />
             </div>
 
             <AttachmentCard attachment={announcement.attachment} />
@@ -375,7 +330,7 @@ function AnnouncementCard({ announcement, isRecent }: { announcement: Announceme
                         </div>
                     )}
                     <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${announcement.location.center.lat},${announcement.location.center.lng}`}
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${announcement.location.center.lat},${announcement.location.center.lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="mt-2 inline-block text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400"
@@ -412,7 +367,7 @@ async function getInitialEventData(eventCode: string) {
     }
 }
 
-// --- MODIFIED Main Page Component with Toasts for error handling ---
+// --- Main Page Component (No changes) ---
 export default function PublicEventPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
     const eventId = resolvedParams.id;
@@ -461,7 +416,7 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
 
                         setAnnouncements(announcementsData);
                         setIsFeedLoading(false);
-                    }, (err) => { // --- MODIFIED: Added toast on error ---
+                    }, (err) => {
                         console.error("Snapshot error:", err);
                         toast.error("Could not load announcements.");
                         setError("Could not load announcements.");
@@ -471,7 +426,7 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                     setError("Event not found.");
                     setIsLoading(false);
                 }
-            }).catch(err => { // --- MODIFIED: Added toast on error ---
+            }).catch(err => {
             console.error("Error loading event:", err);
             toast.error("Could not load event details.");
             setError("Could not load event.");
@@ -479,12 +434,12 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
         });
 
         return () => unsubscribe();
-    }, [eventId]);
+    }, [eventId, latestAnnouncementTime]);
 
     const isAnnouncementRecent = (announcement: Announcement): boolean => {
         const currentTime = Date.now() / 1000;
         const announcementTime = announcement.createdAt.seconds;
-        const isWithinTimeWindow = (currentTime - announcementTime) < (5 * 60);
+        const isWithinTimeWindow = (currentTime - announcementTime) < (5 * 60); // 5 minutes
         const isAmongLatest = announcementTime === latestAnnouncementTime;
         return isWithinTimeWindow && isAmongLatest;
     };
@@ -509,7 +464,6 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
 
     return (
         <div className="bg-slate-50 text-slate-800 dark:bg-zinc-950 dark:text-slate-200">
-            {/* --- NEW: Toaster component for notifications --- */}
             <Toaster
                 position="top-center"
                 reverseOrder={false}
