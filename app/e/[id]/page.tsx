@@ -13,7 +13,7 @@ import {
     EyeIcon,
     ArrowDownTrayIcon,
     DocumentTextIcon,
-    // PhotoIcon - Removed this unused import
+    ArrowPathIcon // --- FIX --- Added for download loading state
 } from '@heroicons/react/24/outline';
 import { BookmarkIcon } from '@heroicons/react/24/solid';
 import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
@@ -23,7 +23,7 @@ import { formatRelativeDate } from '@/app/lib/utils';
 import { APIProvider, Map, AdvancedMarker, useMap, InfoWindow } from '@vis.gl/react-google-maps';
 import NavbarForSRM from "@/app/ui/NavbarForSRM";
 
-// --- Reusable Expandable Text Component ---
+// --- Reusable Expandable Text Component (No changes) ---
 function ExpandableText({ text, maxLines = 2 }: { text: string; maxLines?: number }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [canExpand, setCanExpand] = useState(false);
@@ -62,18 +62,41 @@ function ExpandableText({ text, maxLines = 2 }: { text: string; maxLines?: numbe
     );
 }
 
-// --- REDESIGNED AttachmentCard with Previews (FIXED VERSION) ---
+// --- FIX: REDESIGNED AttachmentCard with WORKING Download & Mobile View ---
 function AttachmentCard({ attachment }: { attachment: Announcement['attachment'] }) {
-    // CRITICAL FIX: Move ALL hooks to the very top, before any conditional logic
-    // This ensures React can track hooks consistently across all renders
     const [isModalOpen, setIsModalOpen] = useState(false);
+    // --- FIX: State to track if download is in progress ---
+    const [isDownloading, setIsDownloading] = useState(false);
 
-    // Now we can safely do our conditional return after all hooks are declared
     if (!attachment) return null;
 
-    // These variables can be defined after the null check since they're not hooks
     const isImage = attachment.type.startsWith('image/');
     const isPdf = attachment.type === 'application/pdf';
+
+    // --- FIX: Function to handle forced file download ---
+    const handleDownload = async () => {
+        setIsDownloading(true);
+        try {
+            const response = await fetch(attachment.url);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = attachment.name;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback: open in a new tab if blob method fails
+            window.open(attachment.url, '_blank');
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
 
     const renderPreview = () => {
         if (isImage) {
@@ -85,7 +108,6 @@ function AttachmentCard({ attachment }: { attachment: Announcement['attachment']
                 />
             );
         }
-        // For non-image files, show an icon
         const Icon = isPdf ? DocumentTextIcon : PaperClipIcon;
         return (
             <div className="flex h-full w-full items-center justify-center bg-slate-100 dark:bg-zinc-800">
@@ -94,41 +116,47 @@ function AttachmentCard({ attachment }: { attachment: Announcement['attachment']
         );
     };
 
-    const PreviewModal = () => (
-        <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={() => setIsModalOpen(false)}
-        >
-            <div className="relative bg-white dark:bg-zinc-900 rounded-lg max-w-4xl max-h-[90vh] w-full h-full flex flex-col" onClick={(e) => e.stopPropagation()}>
-                <div className="flex justify-between items-center p-4 border-b dark:border-zinc-700">
-                    <h3 className="font-semibold text-lg dark:text-white truncate">{attachment.name}</h3>
-                    <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white">&times;</button>
-                </div>
-                <div className="flex-grow overflow-auto">
-                    {isImage ? (
-                        <img src={attachment.url} alt={attachment.name} className="max-w-full max-h-full mx-auto my-auto object-contain" />
-                    ) : isPdf ? (
-                        <iframe src={attachment.url} className="w-full h-full" title={attachment.name} />
-                    ) : (
-                        <div className="p-8 text-center">
-                            <p className="dark:text-white">Preview is not available for this file type.</p>
-                            <a href={attachment.url} download={attachment.name} className="mt-4 inline-block rounded-md bg-indigo-600 px-4 py-2 text-white">Download File</a>
-                        </div>
-                    )}
+    const PreviewModal = () => {
+        // --- FIX: Use Google Docs viewer for PDFs for better mobile compatibility ---
+        const pdfPreviewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(attachment.url)}&embedded=true`;
+
+        return (
+            <div
+                className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+                onClick={() => setIsModalOpen(false)}
+            >
+                <div className="relative bg-white dark:bg-zinc-900 rounded-lg max-w-4xl max-h-[90vh] w-full h-full flex flex-col" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-between items-center p-4 border-b dark:border-zinc-700">
+                        <h3 className="font-semibold text-lg dark:text-white truncate">{attachment.name}</h3>
+                        <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white text-2xl leading-none">×</button>
+                    </div>
+                    <div className="flex-grow overflow-auto">
+                        {isImage ? (
+                            <img src={attachment.url} alt={attachment.name} className="max-w-full max-h-full mx-auto my-auto object-contain p-2" />
+                        ) : isPdf ? (
+                            <iframe src={pdfPreviewUrl} className="w-full h-full" title={attachment.name} />
+                        ) : (
+                            <div className="p-8 text-center flex flex-col items-center justify-center h-full">
+                                <p className="dark:text-white mb-4">Preview is not available for this file type.</p>
+                                <button onClick={handleDownload} disabled={isDownloading} className="mt-4 inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-white">
+                                    {isDownloading ? <ArrowPathIcon className="h-5 w-5 animate-spin" /> : <ArrowDownTrayIcon className="h-5 w-5" />}
+                                    {isDownloading ? 'Downloading...' : 'Download File'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="mt-5 mb-5">
             <div className="rounded-lg border border-gray-200/80 dark:border-zinc-800/50 overflow-hidden">
                 <div className="grid grid-cols-1 md:grid-cols-3">
-                    {/* Preview Section */}
                     <div className="md:col-span-1 h-32 md:h-auto bg-slate-50 dark:bg-zinc-800/50">
                         {renderPreview()}
                     </div>
-                    {/* Info and Actions Section */}
                     <div className="md:col-span-2 p-4 flex flex-col justify-center">
                         <h4 className="font-semibold text-gray-800 dark:text-zinc-100 flex items-center gap-2">
                             <PaperClipIcon className="h-5 w-5 text-gray-400 dark:text-zinc-500" />
@@ -142,10 +170,19 @@ function AttachmentCard({ attachment }: { attachment: Announcement['attachment']
                                 <EyeIcon className="h-4 w-4" />
                                 View
                             </button>
-                            <a href={attachment.url} download={attachment.name} className="flex items-center justify-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500">
-                                <ArrowDownTrayIcon className="h-4 w-4" />
-                                Download
-                            </a>
+                            {/* --- FIX: Changed from <a> to <button> to trigger download function --- */}
+                            <button
+                                onClick={handleDownload}
+                                disabled={isDownloading}
+                                className="flex items-center justify-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                            >
+                                {isDownloading ? (
+                                    <ArrowPathIcon className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <ArrowDownTrayIcon className="h-4 w-4" />
+                                )}
+                                {isDownloading ? 'Downloading' : 'Download'}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -155,8 +192,7 @@ function AttachmentCard({ attachment }: { attachment: Announcement['attachment']
     );
 }
 
-
-// --- Event Header Component ---
+// --- Event Header Component (No changes) ---
 function EventHeader({ event }: { event: Event }) {
     return (
         <header className="mb-8 border-b border-gray-200/80 pb-8 dark:border-zinc-800/50">
@@ -178,7 +214,7 @@ function EventHeader({ event }: { event: Event }) {
     );
 }
 
-// --- Event Info Card (Sidebar) ---
+// --- Event Info Card (Sidebar) (No changes) ---
 function EventInfoCard({ eventId }: { eventId: string }) {
     return (
         <aside className="space-y-6 md:sticky md:top-24">
@@ -189,7 +225,7 @@ function EventInfoCard({ eventId }: { eventId: string }) {
     );
 }
 
-// --- A dedicated map component for the announcement card ---
+// --- AnnouncementMap Component (No changes) ---
 function AnnouncementMap({ location }: { location: Announcement['location'] }) {
     const map = useMap();
     const [infoWindow, setInfoWindow] = useState<Announcement['location'] | null>(null);
@@ -244,7 +280,7 @@ function AnnouncementMap({ location }: { location: Announcement['location'] }) {
     );
 }
 
-// --- Announcement Card Component (with "New" badge logic) ---
+// --- Announcement Card Component (with corrected "Get Directions" link) ---
 function AnnouncementCard({ announcement, isRecent }: { announcement: Announcement; isRecent: boolean }) {
     const [showNewBadge, setShowNewBadge] = useState(isRecent);
 
@@ -255,8 +291,8 @@ function AnnouncementCard({ announcement, isRecent }: { announcement: Announceme
         }
     }, [isRecent]);
 
-    const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    const googleMapsId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_ID;
+    const googleMapsApiKey = process.env.NEXT_PUBLIC_Maps_API_KEY;
+    const googleMapsId = process.env.NEXT_PUBLIC_Maps_ID;
 
     return (
         <article className="animate-fade-in rounded-lg border border-gray-200/80 bg-white p-5 shadow-sm dark:border-zinc-800/50 dark:bg-zinc-900">
@@ -283,7 +319,6 @@ function AnnouncementCard({ announcement, isRecent }: { announcement: Announceme
                 <ExpandableText text={announcement.content} maxLines={4} />
             </div>
 
-            {/* RENDER THE ATTACHMENT AND LOCATION CARDS */}
             <AttachmentCard attachment={announcement.attachment} />
 
             {announcement.location && (
@@ -293,7 +328,7 @@ function AnnouncementCard({ announcement, isRecent }: { announcement: Announceme
                         {announcement.location.name}
                     </h4>
                     {googleMapsApiKey ? (
-                        <div className="h-48 w-full rounded-lg overflow-hidden">
+                        <div className="h-48 w-full rounded-lg overflow-hidden border dark:border-zinc-800">
                             <APIProvider apiKey={googleMapsApiKey}>
                                 <Map
                                     defaultCenter={announcement.location.center}
@@ -314,32 +349,33 @@ function AnnouncementCard({ announcement, isRecent }: { announcement: Announceme
                             </div>
                         </div>
                     )}
-                <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${announcement.location.center.lat},${announcement.location.center.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-block text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400"
+                    {/* --- FIX: Corrected the Google Maps URL for "Get Directions" --- */}
+                    <a
+                        href={`https://www.google.com/maps?q=${announcement.location.center.lat},${announcement.location.center.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-block text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400"
                     >
-                    Get Directions
-                </a>
+                        Get Directions
+                    </a>
                 </div>
-                )}
+            )}
 
-<footer className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200/80 pt-4 text-sm text-gray-500 dark:border-zinc-800/50 dark:text-zinc-400">
-    <div className="flex items-center gap-2">
-        <UserCircleIcon className="h-5 w-5" />
-        <span className="font-medium">{announcement.authorName}</span>
-    </div>
-    <div className="flex items-center gap-2">
-        <CalendarIcon className="h-5 w-5" />
-        <span>{formatRelativeDate(announcement.createdAt)}</span>
-    </div>
-</footer>
-</article>
-);
+            <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200/80 pt-4 text-sm text-gray-500 dark:border-zinc-800/50 dark:text-zinc-400">
+                <div className="flex items-center gap-2">
+                    <UserCircleIcon className="h-5 w-5" />
+                    <span className="font-medium">{announcement.authorName}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-5 w-5" />
+                    <span>{formatRelativeDate(announcement.createdAt)}</span>
+                </div>
+            </footer>
+        </article>
+    );
 }
 
-// Helper function to fetch initial event data
+// Helper function to fetch initial event data (No changes)
 async function getInitialEventData(eventCode: string) {
     try {
         const baseUrl = typeof window !== 'undefined' ? '' : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
@@ -352,7 +388,7 @@ async function getInitialEventData(eventCode: string) {
     }
 }
 
-// --- Main Page Component ---
+// --- Main Page Component (with performance fix) ---
 export default function PublicEventPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
     const eventId = resolvedParams.id;
@@ -417,13 +453,16 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
         });
 
         return () => unsubscribe();
-    }, [eventId, latestAnnouncementTime]);
+        // --- FIX: Optimized dependency array to prevent unnecessary re-subscriptions ---
+    }, [eventId]);
 
     const isAnnouncementRecent = (announcement: Announcement): boolean => {
         const currentTime = Date.now() / 1000;
         const announcementTime = announcement.createdAt.seconds;
+        // The "New" badge shows if the announcement arrived within the last 5 mins
+        // AND is the one that just arrived. This prevents old posts from showing "New" on a page reload.
         const isWithinTimeWindow = (currentTime - announcementTime) < (5 * 60);
-        const isAmongLatest = announcementTime >= latestAnnouncementTime - 60;
+        const isAmongLatest = announcementTime === latestAnnouncementTime;
         return isWithinTimeWindow && isAmongLatest;
     };
 
