@@ -340,16 +340,16 @@ function AnnouncementCard({ announcement, isRecent }: { announcement: Announceme
                 </div>
             )}
 
-            <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200/80 pt-4 text-sm text-gray-500 dark:border-zinc-800/50 dark:text-zinc-400">
-                <div className="flex items-center gap-2">
-                    <UserCircleIcon className="h-5 w-5" />
-                    <span className="font-medium">{announcement.authorName}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-5 w-5" />
-                    <span>{formatRelativeDate(announcement.createdAt)}</span>
-                </div>
-            </footer>
+            {/*<footer className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200/80 pt-4 text-sm text-gray-500 dark:border-zinc-800/50 dark:text-zinc-400">*/}
+            {/*    <div className="flex items-center gap-2">*/}
+            {/*        <UserCircleIcon className="h-5 w-5" />*/}
+            {/*        <span className="font-medium">{announcement.authorName}</span>*/}
+            {/*    </div>*/}
+            {/*    <div className="flex items-center gap-2">*/}
+            {/*        <CalendarIcon className="h-5 w-5" />*/}
+            {/*        <span>{formatRelativeDate(announcement.createdAt)}</span>*/}
+            {/*    </div>*/}
+            {/*</footer>*/}
         </article>
     );
 }
