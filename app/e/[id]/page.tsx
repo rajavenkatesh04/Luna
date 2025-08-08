@@ -316,8 +316,8 @@ function AnnouncementCard({ announcement, isRecent }: { announcement: Announceme
         }
     }, [isRecent]);
 
-    const googleMapsApiKey = process.env.NEXT_PUBLIC_Maps_API_KEY;
-    const googleMapsId = process.env.NEXT_PUBLIC_Maps_ID;
+    const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const googleMapsId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_ID;
 
     return (
         <article className="animate-fade-in rounded-lg border border-gray-200/80 bg-white p-5 shadow-sm dark:border-zinc-800/50 dark:bg-zinc-900">
