@@ -1,29 +1,117 @@
 'use client';
 
 import { useEffect, useState, useRef, use } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { db } from '@/app/lib/firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { Announcement, Event } from '@/app/lib/definitions';
 import toast, { Toaster } from 'react-hot-toast';
 import {
-    UserCircleIcon,
     CalendarIcon,
     SparklesIcon,
     MapPinIcon,
     PaperClipIcon,
-    EyeIcon,
     ArrowDownTrayIcon,
     DocumentTextIcon,
+    ChevronDownIcon,
+    ChevronUpIcon,
+    MagnifyingGlassIcon,
+    XMarkIcon,
+    EyeIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
 } from '@heroicons/react/24/outline';
-import { BookmarkIcon } from '@heroicons/react/24/solid';
+import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import LoadingSpinner from "@/app/ui/dashboard/loading-spinner";
 import NotificationButton from "@/app/ui/NotificationButton";
 import { AnnouncementsFeedSkeleton } from '@/app/ui/skeletons';
 import { formatRelativeDate } from '@/app/lib/utils';
 import { APIProvider, Map, AdvancedMarker, useMap, InfoWindow } from '@vis.gl/react-google-maps';
-import NavbarForSRM from "@/app/ui/NavbarForSRM";
 
-// --- Reusable Expandable Text Component (No changes) ---
+// =================================================================================
+// REUSABLE UI COMPONENTS
+// =================================================================================
+
+function SearchBar({ searchTerm, onSearchChange }: {
+    searchTerm: string;
+    onSearchChange: (term: string) => void;
+}) {
+    return (
+        <div className="relative w-full">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 dark:text-zinc-500" />
+            </div>
+            <input
+                type="text"
+                placeholder="Search live updates..."
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-10 pr-10 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:focus:ring-indigo-400"
+            />
+            {searchTerm && (
+                <button
+                    onClick={() => onSearchChange('')}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3"
+                    aria-label="Clear search"
+                >
+                    <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300" />
+                </button>
+            )}
+        </div>
+    );
+}
+
+function NavbarForSRM({ searchTerm, onSearchChange }: {
+    searchTerm: string;
+    onSearchChange: (term: string) => void;
+}) {
+    const [isMobileSearchVisible, setIsMobileSearchVisible] = useState(false);
+
+    return (
+        <nav className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/80">
+            <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 p-4 text-gray-900 dark:text-zinc-100">
+                {!isMobileSearchVisible && (
+                    <div className="flex-shrink-0">
+                        <Link href="/">
+                            <Image
+                                src="/srm-logo.svg"
+                                alt="SRM Institute of Science and Technology Logo"
+                                width={200}
+                                height={68}
+                                className="h-8 w-auto md:h-10"
+                                priority
+                            />
+                        </Link>
+                    </div>
+                )}
+
+                <div className="hidden flex-1 items-center justify-end md:flex">
+                    <div className="w-full max-w-sm">
+                        <SearchBar searchTerm={searchTerm} onSearchChange={onSearchChange} />
+                    </div>
+                </div>
+
+                <div className="flex w-full items-center justify-end md:hidden">
+                    {isMobileSearchVisible ? (
+                        <div className="flex w-full items-center gap-2">
+                            <SearchBar searchTerm={searchTerm} onSearchChange={onSearchChange} />
+                            <button onClick={() => setIsMobileSearchVisible(false)} aria-label="Close search">
+                                <XMarkIcon className="h-6 w-6"/>
+                            </button>
+                        </div>
+                    ) : (
+                        <button onClick={() => setIsMobileSearchVisible(true)} aria-label="Open search">
+                            <MagnifyingGlassIcon className="h-6 w-6" />
+                        </button>
+                    )}
+                </div>
+            </div>
+        </nav>
+    );
+}
+
+// Enhanced ExpandableText component for better text handling
 function ExpandableText({ text, maxLines = 2 }: { text: string; maxLines?: number }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [canExpand, setCanExpand] = useState(false);
@@ -62,8 +150,11 @@ function ExpandableText({ text, maxLines = 2 }: { text: string; maxLines?: numbe
     );
 }
 
-// --- MODIFIED AttachmentCard ---
-function AttachmentCard({ attachment }: { attachment: Announcement['attachment'] }) {
+// Enhanced AttachmentCard component with better styling and functionality
+function AttachmentCard({ attachment, isCompact = false }: {
+    attachment: Announcement['attachment'];
+    isCompact?: boolean
+}) {
     const [isDownloading, setIsDownloading] = useState(false);
 
     if (!attachment) return null;
@@ -71,12 +162,13 @@ function AttachmentCard({ attachment }: { attachment: Announcement['attachment']
     const isImage = attachment.type.startsWith('image/');
     const isPdf = attachment.type === 'application/pdf';
 
-    const handleDownload = async () => {
+    const handleDownload = async (e: React.MouseEvent) => {
+        e.stopPropagation();
         setIsDownloading(true);
         const toastId = toast.loading('Starting download...');
         try {
             const response = await fetch(attachment.url);
-            if (!response.ok) throw new Error('Network response was not ok.');
+            if (!response.ok) throw new Error('Network error');
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -90,25 +182,56 @@ function AttachmentCard({ attachment }: { attachment: Announcement['attachment']
             toast.success('Download started!', { id: toastId });
         } catch (error) {
             console.error('Download failed:', error);
-            toast.error('Download failed. Please try again.', { id: toastId });
+            toast.error('Download failed.', { id: toastId });
         } finally {
             setIsDownloading(false);
         }
     };
 
-    const handleViewClick = () => {
-        if (!attachment?.url) {
-            toast.error('Attachment link is not available.');
-            return;
-        }
-        toast('Opening in new tab...');
+    const handleView = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!attachment?.url) return;
         window.open(attachment.url, '_blank', 'noopener,noreferrer');
     };
+
+    if (isCompact) {
+        return (
+            <div
+                className="mt-3 cursor-pointer rounded-lg border border-gray-200/80 bg-white/50 p-3 hover:bg-white/80 dark:border-zinc-700/50 dark:bg-zinc-800/50 dark:hover:bg-zinc-800/80"
+                onClick={handleView}
+            >
+                <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0">
+                        {isImage ? (
+                            <img src={attachment.url} alt={attachment.name} className="h-10 w-10 rounded object-cover" />
+                        ) : (
+                            <div className="flex h-10 w-10 items-center justify-center rounded bg-slate-100 dark:bg-zinc-700">
+                                <DocumentTextIcon className="h-5 w-5 text-slate-400 dark:text-zinc-400" />
+                            </div>
+                        )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium text-gray-700 dark:text-zinc-300" title={attachment.name}>
+                            {attachment.name}
+                        </p>
+                        <div className="mt-1 flex gap-2">
+                            <button
+                                onClick={handleDownload}
+                                disabled={isDownloading}
+                                className="rounded bg-indigo-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                            >
+                                {isDownloading ? '...' : 'Download'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const renderPreview = () => {
         if (isImage) {
             return (
-                // --- MODIFIED: Changed to object-contain to fit the image without cropping. ---
                 <img
                     src={attachment.url}
                     alt={attachment.name}
@@ -141,7 +264,7 @@ function AttachmentCard({ attachment }: { attachment: Announcement['attachment']
                         </p>
                         <div className="flex flex-col items-stretch gap-3 mt-4">
                             <button
-                                onClick={handleViewClick}
+                                onClick={handleView}
                                 className="flex items-center justify-center gap-2 rounded-md bg-white dark:bg-zinc-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-600"
                             >
                                 <EyeIcon className="h-4 w-4" />
@@ -172,40 +295,150 @@ function AttachmentCard({ attachment }: { attachment: Announcement['attachment']
     );
 }
 
-// --- Event Header Component (No changes) ---
-function EventHeader({ event }: { event: Event }) {
+// Enhanced PinnedCarousel with navigation controls
+function PinnedCarousel({ announcements }: { announcements: Announcement[] }) {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+    const resetTimer = () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+            setCurrentIndex(prev => (prev + 1) % announcements.length);
+        }, 5000);
+    };
+
+    useEffect(() => {
+        if (announcements.length > 1) {
+            resetTimer();
+        }
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, [announcements.length]);
+
+    const handleIndicatorClick = (index: number) => {
+        setCurrentIndex(index);
+        resetTimer();
+    };
+
+    const handlePrevious = () => {
+        setCurrentIndex(prev => prev === 0 ? announcements.length - 1 : prev - 1);
+        resetTimer();
+    };
+
+    const handleNext = () => {
+        setCurrentIndex(prev => (prev + 1) % announcements.length);
+        resetTimer();
+    };
+
+    if (announcements.length === 0) return null;
+
+    return (
+        <section className="mb-12" aria-labelledby="pinned-announcements-title">
+            <div className="flex items-center justify-between mb-4">
+                <h2 id="pinned-announcements-title" className="text-lg font-semibold text-gray-900 dark:text-zinc-100 flex items-center gap-2">
+                    <BookmarkSolidIcon className="h-5 w-5 text-amber-500" />
+                    Pinned Announcements
+                </h2>
+
+                {announcements.length > 1 && (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handlePrevious}
+                            className="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+                            aria-label="Previous announcement"
+                        >
+                            <ChevronLeftIcon className="h-4 w-4 text-gray-600 dark:text-zinc-400" />
+                        </button>
+                        <button
+                            onClick={handleNext}
+                            className="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+                            aria-label="Next announcement"
+                        >
+                            <ChevronRightIcon className="h-4 w-4 text-gray-600 dark:text-zinc-400" />
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            <div className="overflow-hidden relative">
+                <div
+                    className="flex transition-transform duration-500 ease-in-out"
+                    style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                >
+                    {announcements.map((ann) => (
+                        <article
+                            key={ann.id}
+                            className="flex-shrink-0 w-full rounded-lg border border-amber-500/30 bg-amber-50/30 p-4 dark:border-amber-500/20 dark:bg-amber-950/20"
+                            style={{ minHeight: '180px' }}
+                        >
+                            <div className="flex flex-col h-full">
+                                <h3 className="font-semibold text-gray-900 dark:text-zinc-100 line-clamp-2">{ann.title}</h3>
+                                <p className="text-sm text-gray-600 dark:text-zinc-400 line-clamp-2 mt-1 flex-grow">{ann.content}</p>
+                                {ann.attachment && <AttachmentCard attachment={ann.attachment} isCompact={true} />}
+                                <div className="mt-3 text-xs text-gray-400 dark:text-zinc-500">{formatRelativeDate(ann.createdAt)}</div>
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            </div>
+
+            {announcements.length > 1 && (
+                <div className="flex justify-center gap-2 mt-4">
+                    {announcements.map((_, index) => (
+                        <button
+                            key={index}
+                            onClick={() => handleIndicatorClick(index)}
+                            className={`h-2 w-6 rounded-full transition-colors ${
+                                index === currentIndex ? 'bg-amber-500' : 'bg-gray-300 dark:bg-zinc-700'
+                            }`}
+                            aria-label={`Go to pinned item ${index + 1}`}
+                        />
+                    ))}
+                </div>
+            )}
+        </section>
+    );
+}
+
+function EventHeader({ event, eventId }: { event: Event; eventId: string }) {
+    const [isExpanded, setIsExpanded] = useState(false);
+
     return (
         <header className="mb-8 border-b border-gray-200/80 pb-8 dark:border-zinc-800/50">
             <h1 className="text-4xl font-bold tracking-wide text-transparent bg-gradient-to-r from-blue-500 to-teal-300 bg-clip-text mb-4">
                 {event.title}
             </h1>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 dark:text-zinc-500">
-                <div className="flex items-center gap-2">
-                    <MapPinIcon className="h-4 w-4" />
-                    <span>Kattankulathur, Chennai.</span>
-                </div>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 dark:text-zinc-500 mb-4">
+                <div className="flex items-center gap-2"><MapPinIcon className="h-4 w-4" /><span>Kattankulathur, Chennai.</span></div>
+                <div className="flex items-center gap-2 text-green-600 dark:text-green-400"><div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div><span className="font-medium">Live Event</span></div>
             </div>
+
             {event.description && (
-                <div className="mt-4 max-w-3xl">
-                    <ExpandableText text={event.description} maxLines={3} />
-                </div>
+                <>
+                    <div className={`grid transition-all duration-500 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0'}`}>
+                        <div className="overflow-hidden">
+                            <p className="text-gray-600 dark:text-zinc-400 whitespace-pre-wrap mb-6">{event.description}</p>
+                            <NotificationButton eventId={eventId} />
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="mt-4 flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                    >
+                        {isExpanded ? (
+                            <><span>Show Less</span><ChevronUpIcon className="h-4 w-4" /></>
+                        ) : (
+                            <><span>Read More & Notify</span><ChevronDownIcon className="h-4 w-4" /></>
+                        )}
+                    </button>
+                </>
             )}
         </header>
     );
 }
 
-// --- Event Info Card (Sidebar) (No changes) ---
-function EventInfoCard({ eventId }: { eventId: string }) {
-    return (
-        <aside className="space-y-6 md:sticky md:top-24">
-            <div className="rounded-lg border border-gray-200/80 bg-white p-5 dark:border-zinc-800/50 dark:bg-zinc-900">
-                <NotificationButton eventId={eventId} />
-            </div>
-        </aside>
-    );
-}
-
-// --- AnnouncementMap Component (No changes) ---
+// Map component for announcements with location data
 function AnnouncementMap({ location }: { location: Announcement['location'] }) {
     const map = useMap();
     const [infoWindow, setInfoWindow] = useState<Announcement['location'] | null>(null);
@@ -260,39 +493,106 @@ function AnnouncementMap({ location }: { location: Announcement['location'] }) {
     );
 }
 
-// --- Announcement Card Component (No changes) ---
-function AnnouncementCard({ announcement, isRecent }: { announcement: Announcement; isRecent: boolean }) {
+// Enhanced CompactAnnouncementCard with expand functionality and visual enhancements
+function CompactAnnouncementCard({
+                                     announcement,
+                                     isRecent,
+                                     isExpanded,
+                                     onToggleExpanded,
+                                     shouldAutoExpand = false
+                                 }: {
+    announcement: Announcement;
+    isRecent: boolean;
+    isExpanded: boolean;
+    onToggleExpanded: () => void;
+    shouldAutoExpand?: boolean;
+}) {
     const [showNewBadge, setShowNewBadge] = useState(isRecent);
+    const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const googleMapsId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_ID;
 
     useEffect(() => {
         if (isRecent) {
-            const timer = setTimeout(() => setShowNewBadge(false), 2 * 60 * 1000); // 2 minutes
+            const timer = setTimeout(() => setShowNewBadge(false), 2 * 60 * 1000);
             return () => clearTimeout(timer);
         }
     }, [isRecent]);
 
-    const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    const googleMapsId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_ID;
+    // Auto-expand most recent announcement
+    useEffect(() => {
+        if (shouldAutoExpand && !isExpanded) {
+            onToggleExpanded();
+        }
+    }, [shouldAutoExpand, isExpanded, onToggleExpanded]);
+
+    if (!isExpanded) {
+        return (
+            <div
+                className={`cursor-pointer rounded-lg border bg-white p-4 shadow-sm hover:shadow-md transition-all duration-300 dark:bg-zinc-900 dark:hover:shadow-lg ${
+                    isRecent
+                        ? 'border-gradient-animated bg-gradient-to-r from-blue-50 via-purple-50 to-blue-50 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-blue-950/20'
+                        : 'border-gray-200/80 dark:border-zinc-800/50'
+                }`}
+                onClick={onToggleExpanded}
+                style={isRecent ? {
+                    backgroundImage: 'linear-gradient(45deg, transparent 25%, rgba(59, 130, 246, 0.1) 25%, rgba(59, 130, 246, 0.1) 50%, transparent 50%, transparent 75%, rgba(147, 51, 234, 0.1) 75%)',
+                    backgroundSize: '20px 20px',
+                    animation: 'gradient-slide 3s linear infinite'
+                } : {}}
+            >
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                            {showNewBadge && (
+                                <span className="inline-flex items-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 px-2 py-1 text-xs font-medium text-white animate-pulse">
+                                    New
+                                </span>
+                            )}
+                            <span className="text-xs text-gray-500 dark:text-zinc-400">{formatRelativeDate(announcement.createdAt)}</span>
+                        </div>
+                        <h3 className="font-semibold text-gray-900 dark:text-zinc-100 mb-2 line-clamp-1">{announcement.title}</h3>
+                        <p className="text-sm text-gray-600 dark:text-zinc-400 line-clamp-2 mb-3">{announcement.content}</p>
+                        <div className="flex items-center gap-4 text-xs">
+                            {announcement.attachment && <PaperClipIcon className="h-4 w-4" />}
+                            {announcement.location && <MapPinIcon className="h-4 w-4" />}
+                        </div>
+                    </div>
+                    <ChevronDownIcon className="h-5 w-5 text-gray-400 dark:text-zinc-500 flex-shrink-0" />
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <article className="animate-fade-in rounded-lg border border-gray-200/80 bg-white p-5 shadow-sm dark:border-zinc-800/50 dark:bg-zinc-900">
+        <article className={`animate-fade-in rounded-lg border bg-white p-5 shadow-sm dark:bg-zinc-900 transition-all duration-300 ${
+            isRecent
+                ? 'border-gradient-animated'
+                : 'border-gray-200/80 dark:border-zinc-800/50'
+        }`}>
             <header className="mb-4">
-                <div className="flex flex-wrap items-center gap-3 mb-3">
-                    {announcement.isPinned && (
-                        <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                            <BookmarkIcon className="h-4 w-4" />
-                            <span>Pinned</span>
-                        </div>
-                    )}
-                    {showNewBadge && (
-                        <div className="flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                            <span>New</span>
-                        </div>
-                    )}
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                        {announcement.isPinned && (
+                            <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                <BookmarkSolidIcon className="h-4 w-4" />
+                                <span>Pinned</span>
+                            </div>
+                        )}
+                        {showNewBadge && (
+                            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 px-2.5 py-1 text-xs font-medium text-white animate-pulse">
+                                <span>New</span>
+                            </div>
+                        )}
+                    </div>
+                    <button
+                        onClick={onToggleExpanded}
+                        className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800"
+                        aria-label="Collapse announcement"
+                    >
+                        <ChevronUpIcon className="h-5 w-5 text-gray-400 dark:text-zinc-500" />
+                    </button>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-zinc-100">
-                    {announcement.title}
-                </h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-zinc-100">{announcement.title}</h2>
             </header>
 
             <div className="mb-5 text-base">
@@ -329,32 +629,27 @@ function AnnouncementCard({ announcement, isRecent }: { announcement: Announceme
                             </div>
                         </div>
                     )}
-                    <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${announcement.location.center.lat},${announcement.location.center.lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-2 inline-block text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400"
+                <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${announcement.location.center.lat},${announcement.location.center.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400"
                     >
-                        Get Directions
-                    </a>
+                    Get Directions
+                </a>
                 </div>
-            )}
+                )}
 
-            {/*<footer className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200/80 pt-4 text-sm text-gray-500 dark:border-zinc-800/50 dark:text-zinc-400">*/}
-            {/*    <div className="flex items-center gap-2">*/}
-            {/*        <UserCircleIcon className="h-5 w-5" />*/}
-            {/*        <span className="font-medium">{announcement.authorName}</span>*/}
-            {/*    </div>*/}
-            {/*    <div className="flex items-center gap-2">*/}
-            {/*        <CalendarIcon className="h-5 w-5" />*/}
-            {/*        <span>{formatRelativeDate(announcement.createdAt)}</span>*/}
-            {/*    </div>*/}
-            {/*</footer>*/}
-        </article>
-    );
+<footer className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200/80 pt-4 mt-4 text-sm text-gray-500 dark:border-zinc-800/50 dark:text-zinc-400">
+    <div className="flex items-center gap-2">
+        <CalendarIcon className="h-5 w-5" />
+        <span>{formatRelativeDate(announcement.createdAt)}</span>
+    </div>
+</footer>
+</article>
+);
 }
 
-// Helper function to fetch initial event data (No changes)
 async function getInitialEventData(eventCode: string) {
     try {
         const baseUrl = typeof window !== 'undefined' ? '' : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
@@ -367,74 +662,82 @@ async function getInitialEventData(eventCode: string) {
     }
 }
 
-// --- Main Page Component (No changes) ---
+// =================================================================================
+// MAIN PAGE COMPONENT
+// =================================================================================
 export default function PublicEventPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
     const eventId = resolvedParams.id;
 
     const [event, setEvent] = useState<Event | null>(null);
-    const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+    const [allAnnouncements, setAllAnnouncements] = useState<Announcement[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFeedLoading, setIsFeedLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
     const [latestAnnouncementTime, setLatestAnnouncementTime] = useState<number>(0);
+
+    const liveUpdatesRef = useRef<HTMLDivElement>(null);
+    const initialScrollDone = useRef(false);
 
     useEffect(() => {
         if (!eventId) return;
 
         let unsubscribe = () => { };
 
-        getInitialEventData(eventId)
-            .then(data => {
-                if (data && data.eventData && data.eventPath) {
-                    setEvent(data.eventData);
-                    setIsLoading(false);
+        getInitialEventData(eventId).then(data => {
+            if (data && data.eventData && data.eventPath) {
+                setEvent(data.eventData);
+                setIsLoading(false);
 
-                    const announcementsQuery = query(
-                        collection(db, `${data.eventPath}/announcements`),
-                        orderBy('createdAt', 'desc')
-                    );
+                const announcementsQuery = query(collection(db, `${data.eventPath}/announcements`), orderBy('createdAt', 'desc'));
 
-                    unsubscribe = onSnapshot(announcementsQuery, (querySnapshot) => {
-                        const announcementsData = querySnapshot.docs.map(doc => ({
-                            id: doc.id,
-                            ...doc.data()
-                        } as Announcement));
+                unsubscribe = onSnapshot(announcementsQuery, (querySnapshot) => {
+                    const announcementsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
 
-                        announcementsData.sort((a, b) => {
-                            if (a.isPinned && !b.isPinned) return -1;
-                            if (!a.isPinned && b.isPinned) return 1;
-                            return b.createdAt.seconds - a.createdAt.seconds;
-                        });
-
-                        if (announcementsData.length > 0) {
-                            const mostRecentTime = Math.max(...announcementsData.map(a => a.createdAt.seconds));
-                            if (mostRecentTime > latestAnnouncementTime) {
-                                setLatestAnnouncementTime(mostRecentTime);
-                            }
+                    // Track the most recent announcement time for "new" indicators
+                    if (announcementsData.length > 0) {
+                        const mostRecentTime = Math.max(...announcementsData.map(a => a.createdAt.seconds));
+                        if (mostRecentTime > latestAnnouncementTime) {
+                            setLatestAnnouncementTime(mostRecentTime);
                         }
+                    }
 
-                        setAnnouncements(announcementsData);
-                        setIsFeedLoading(false);
-                    }, (err) => {
-                        console.error("Snapshot error:", err);
-                        toast.error("Could not load announcements.");
-                        setError("Could not load announcements.");
-                        setIsFeedLoading(false);
-                    });
-                } else {
-                    setError("Event not found.");
-                    setIsLoading(false);
-                }
-            }).catch(err => {
-            console.error("Error loading event:", err);
-            toast.error("Could not load event details.");
+                    setAllAnnouncements(announcementsData);
+                    setIsFeedLoading(false);
+                }, (err) => {
+                    setError("Could not load announcements.");
+                    setIsFeedLoading(false);
+                });
+            } else {
+                setError("Event not found.");
+                setIsLoading(false);
+            }
+        }).catch(err => {
             setError("Could not load event.");
             setIsLoading(false);
         });
 
         return () => unsubscribe();
     }, [eventId, latestAnnouncementTime]);
+
+    useEffect(() => {
+        if (!isFeedLoading && !initialScrollDone.current && liveUpdatesRef.current) {
+            setTimeout(() => {
+                liveUpdatesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                initialScrollDone.current = true;
+            }, 500);
+        }
+    }, [isFeedLoading]);
+
+    const pinnedAnnouncements = allAnnouncements.filter(a => a.isPinned);
+    const liveAnnouncements = allAnnouncements
+        .filter(a => !a.isPinned)
+        .filter(a =>
+            a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            a.content.toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
     const isAnnouncementRecent = (announcement: Announcement): boolean => {
         const currentTime = Date.now() / 1000;
@@ -444,80 +747,111 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
         return isWithinTimeWindow && isAmongLatest;
     };
 
+    const handleToggleExpanded = (announcementId: string) => {
+        setExpandedCards(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(announcementId)) {
+                newSet.delete(announcementId);
+            } else {
+                newSet.add(announcementId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleExpandAll = () => {
+        const allIds = liveAnnouncements.map(a => a.id);
+        setExpandedCards(new Set(allIds));
+    };
+
+    const handleCollapseAll = () => {
+        setExpandedCards(new Set());
+    };
+
+    const isSearchActive = searchTerm.trim().length > 0;
+
     if (isLoading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-slate-50 text-gray-700 dark:bg-zinc-950 dark:text-zinc-300">
-                <LoadingSpinner />
-                <span className="ml-2">Loading Event...</span>
-            </div>
-        );
+        return <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-zinc-950"><LoadingSpinner /><span className="ml-2">Loading Event...</span></div>;
     }
 
     if (error) {
-        return (
-            <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4 text-center dark:bg-zinc-950">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">Event Not Found</h1>
-                <p className="mt-2 text-gray-600 dark:text-zinc-400">The event code you entered is invalid or the event has ended.</p>
-            </main>
-        );
+        return <main className="flex min-h-screen flex-col items-center justify-center p-4 text-center"><h1>{error}</h1></main>;
     }
 
     return (
         <div className="bg-slate-50 text-slate-800 dark:bg-zinc-950 dark:text-slate-200">
-            <Toaster
-                position="top-center"
-                reverseOrder={false}
-                toastOptions={{
-                    duration: 3000,
-                    style: {
-                        background: '#334155', // slate-700
-                        color: '#fff',
-                    },
-                    success: {
-                        style: {
-                            background: '#16a34a', // green-600
-                        },
-                    },
-                    error: {
-                        style: {
-                            background: '#dc2626', // red-600
-                        },
-                    },
-                }}
-            />
-            <NavbarForSRM />
-            <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-                {event && <EventHeader event={event} />}
+            <Toaster position="top-center" reverseOrder={false} />
+            <NavbarForSRM searchTerm={searchTerm} onSearchChange={setSearchTerm} />
 
-                <main className="grid grid-cols-1 gap-12 md:grid-cols-3">
-                    <div className="md:col-span-1">
-                        {eventId && <EventInfoCard eventId={eventId} />}
-                    </div>
+            <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+                {/* Only show event header when not actively searching */}
+                {!isSearchActive && event && <EventHeader event={event} eventId={eventId} />}
 
-                    <section className="space-y-6 md:col-span-2">
-                        {isFeedLoading ? (
-                            <AnnouncementsFeedSkeleton />
-                        ) : announcements.length > 0 ? (
-                            announcements.map(ann =>
-                                <AnnouncementCard
-                                    key={ann.id}
-                                    announcement={ann}
-                                    isRecent={isAnnouncementRecent(ann)}
-                                />
-                            )
-                        ) : (
-                            <div className="rounded-lg border-2 border-dashed border-gray-300/80 bg-white/50 py-20 text-center dark:border-zinc-800/50 dark:bg-zinc-900/50">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">No Announcements Yet</h3>
-                                <p className="mt-1 text-gray-500 dark:text-zinc-400">Stay tuned for updates from the organizer!</p>
+                <main>
+                    {isFeedLoading ? (
+                        <AnnouncementsFeedSkeleton />
+                    ) : (
+                        <>
+                            {/* Only show pinned carousel when not searching */}
+                            {!isSearchActive && <PinnedCarousel announcements={pinnedAnnouncements} />}
+
+                            <div ref={liveUpdatesRef} className="scroll-mt-24">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 flex items-center gap-2">
+                                        <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                                        {isSearchActive ? 'Search Results' : 'Live Updates'}
+                                    </h3>
+
+                                    {!isSearchActive && liveAnnouncements.length > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={handleExpandAll}
+                                                className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 px-2 py-1 rounded border border-indigo-200 hover:border-indigo-300 dark:border-indigo-800 dark:hover:border-indigo-700"
+                                            >
+                                                Expand All
+                                            </button>
+                                            <button
+                                                onClick={handleCollapseAll}
+                                                className="text-xs font-medium text-gray-600 hover:text-gray-500 dark:text-gray-400 dark:hover:text-gray-300 px-2 py-1 rounded border border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
+                                            >
+                                                Collapse All
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {liveAnnouncements.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {liveAnnouncements.map((ann, index) => (
+                                            <CompactAnnouncementCard
+                                                key={ann.id}
+                                                announcement={ann}
+                                                isRecent={isAnnouncementRecent(ann)}
+                                                isExpanded={expandedCards.has(ann.id)}
+                                                onToggleExpanded={() => handleToggleExpanded(ann.id)}
+                                                shouldAutoExpand={index === 0 && isAnnouncementRecent(ann)} // Auto-expand most recent
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="rounded-lg border-2 border-dashed border-gray-300/80 bg-white/50 py-20 text-center dark:border-zinc-800/50 dark:bg-zinc-900/50">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">
+                                            {searchTerm ? 'No Matching Updates' : 'No Live Updates Yet'}
+                                        </h3>
+                                        <p className="mt-1 text-gray-500 dark:text-zinc-400">
+                                            {searchTerm ? 'Try a different search term.' : 'Stay tuned for real-time announcements!'}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </section>
+                        </>
+                    )}
                 </main>
             </div>
 
             <footer className="w-full border-t border-gray-200/80 bg-slate-100/50 py-6 dark:border-zinc-800/50 dark:bg-zinc-950/50">
                 <div className="mx-auto flex max-w-6xl items-center justify-center px-6 text-sm text-gray-500 dark:text-zinc-500">
-                    <a href="/" target="_blank">
+                    <a href="/" target="_blank" rel="noopener noreferrer">
                         <div className="flex items-center gap-2">
                             <SparklesIcon className="h-4 w-4 text-indigo-500" />
                             <span>Powered by <span className="font-medium text-gray-700 dark:text-zinc-300">Luna</span></span>
@@ -525,6 +859,19 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                     </a>
                 </div>
             </footer>
+
+            {/* Add custom CSS for the gradient animation */}
+            <style jsx>{`
+               @keyframes gradient-slide {
+                   0% { background-position: 0% 0%; }
+                   100% { background-position: 100% 100%; }
+               }
+               .border-gradient-animated {
+                   border: 2px solid;
+                   border-image: linear-gradient(45deg, #3b82f6, #9333ea, #3b82f6) 1;
+                   animation: gradient-slide 3s linear infinite;
+               }
+           `}</style>
         </div>
     );
 }
