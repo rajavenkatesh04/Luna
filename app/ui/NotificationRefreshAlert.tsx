@@ -101,7 +101,8 @@ function NotificationRefreshAlert({ eventId }: { eventId: string }) {
             // Now we can safely call getToken because we've verified messaging is not null
             // TypeScript is happy because we've proven messaging exists at this point
             const freshToken = await getToken(messaging, {
-                serviceWorkerRegistration: swRegistration
+                serviceWorkerRegistration: swRegistration,
+                vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
             });
 
             if (freshToken) {
