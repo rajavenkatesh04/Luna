@@ -10,6 +10,7 @@ import { Timestamp, FieldValue, DocumentSnapshot  } from 'firebase-admin/firesto
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
+import { Message } from 'firebase-admin/messaging';
 
 // =================================================================================
 // --- USER & PROFILE ACTIONS ---
@@ -294,13 +295,27 @@ export async function createAnnouncement(prevState: CreateAnnouncementState, for
 
         const topic = `event_${eventData.id.replace(/-/g, '_')}`;
         const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
-        const messagePayload = {
+        const messagePayload: Message =  {
             topic: topic,
             data: {
                 title: eventData.title || 'Event Update',
                 body: announcementTitle,
                 url: `${baseUrl}/e/${eventData.id}`
-            }
+            },
+            android: {
+                priority: 'high' as const,
+            },
+            apns: {
+                headers: {
+                    'apns-push-type': 'alert',
+                    'apns-priority': '10',
+                },
+            },
+            webpush: {
+                headers: {
+                    'Urgency': 'high',
+                },
+            },
         };
         await adminMessaging.send(messagePayload);
 
