@@ -28,6 +28,7 @@ import NotificationButton from "@/app/ui/NotificationButton";
 import { AnnouncementsFeedSkeleton } from '@/app/ui/skeletons';
 import { formatRelativeDate } from '@/app/lib/utils';
 import { APIProvider, Map, AdvancedMarker, useMap, InfoWindow } from '@vis.gl/react-google-maps';
+import NotificationRefreshAlert from "@/app/ui/NotificationRefreshAlert";
 
 // =================================================================================
 // REUSABLE UI COMPONENTS
@@ -794,6 +795,9 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                         <>
                             {/* Only show pinned carousel when not searching */}
                             {!isSearchActive && <PinnedCarousel announcements={pinnedAnnouncements} />}
+
+                            {/* notification refresh alert here */}
+                            {!isSearchActive && <NotificationRefreshAlert eventId={eventId} />}
 
                             <div ref={liveUpdatesRef} className="scroll-mt-24">
                                 <div className="flex items-center justify-between mb-6">
