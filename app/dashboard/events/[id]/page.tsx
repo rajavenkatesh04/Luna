@@ -64,7 +64,7 @@ async function EventDetails({ params, searchParams }: PageProps) {
                         </div>
                         <Link href={`/e/${event.id}`} target="_blank" className="flex items-center gap-2 rounded-md border border-gray-200 px-4 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800">
                             <EyeIcon className="h-4 w-4" />
-                            View
+                            Preview
                         </Link>
                         <QrCodeDisplay eventId={event.id} />
                     </div>

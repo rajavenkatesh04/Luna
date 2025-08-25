@@ -18,8 +18,8 @@ export default function NavbarForSRM() {
                 <div className={``}>
                     <Link href="/" >
                         <Image
-                            src="/srm-logo.svg"
-                            alt="SRM Institute of Science and Technology Logo"
+                            src="/9121424.png"
+                            alt="Logo"
                             width={600} // Use the SVG's actual aspect ratio
                             height={203}
                             className="h-8 w-auto md:h-10" // Control responsive size

@@ -76,7 +76,7 @@ function NavbarForSRM({ searchTerm, onSearchChange }: {
                     <div className="flex-shrink-0">
                         <Link href="/">
                             <Image
-                                src="/srm-logo.svg"
+                                src="/9121424.png"
                                 alt="SRM Institute of Science and Technology Logo"
                                 width={200}
                                 height={68}
