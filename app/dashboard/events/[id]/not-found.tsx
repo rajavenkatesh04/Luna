@@ -9,9 +9,10 @@ export default function NotFound() {
     const [missingPath, setMissingPath] = useState('');
 
     useEffect(() => {
-        // This runs on the client and can access the window location
         if (typeof window !== 'undefined') {
-            setMissingPath(window.location.pathname);
+            const pathSegments = window.location.pathname.split('/');
+            const eventId = pathSegments[pathSegments.length - 1]; // Get last part of the path
+            setMissingPath(eventId);
         }
     }, []);
 
@@ -36,8 +37,10 @@ export default function NotFound() {
                     </p>
                     {missingPath && (
                         <p className="text-sm text-gray-500 bg-gray-100 rounded-md p-2 inline-block">
-                            We couldn&apos;t find anything at: <strong>{missingPath}</strong>
+                            We couldn&apos;t find any event with ID
+                            <span className="ml-1 px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 font-mono tracking-wide text-md">{missingPath}</span>
                         </p>
+
                     )}
                 </div>
 

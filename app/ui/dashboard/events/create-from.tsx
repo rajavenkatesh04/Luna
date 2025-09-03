@@ -61,6 +61,78 @@ export default function CreateEventForm() {
                     />
                 </div>
 
+                {/* Event location*/}
+                <div className="mb-4">
+                    <label htmlFor="locationText" className="mb-2 block text-sm font-medium text-gray-900 dark:text-zinc-100">Location</label>
+                    <input
+                        id="locationText"
+                        name="locationText"
+                        type="text"
+                        placeholder="e.g., Main Auditorium, SRM Campus"
+                        className="block w-full rounded-md border border-gray-200 bg-gray-50 py-2 px-3 text-sm text-gray-900 placeholder:text-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                        required
+                    />
+                    {state.errors?.locationText && <p className="mt-2 text-xs text-red-500">{state.errors.locationText}</p>}
+                </div>
+
+                {/* Event start and end time */}
+                <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                        <label htmlFor="startsAt" className="mb-2 block text-sm font-medium text-gray-900 dark:text-zinc-100">
+                            Starts At
+                        </label>
+                        <input
+                            id="startsAt"
+                            name="startsAt"
+                            type="datetime-local"
+                            className="block w-full rounded-md border border-gray-200 bg-gray-50 py-2 px-3 text-sm text-gray-900 placeholder:text-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                            required
+                        />
+                        {state.errors?.startsAt && <p className="mt-2 text-xs text-red-500">{state.errors.startsAt}</p>}
+                    </div>
+                    <div>
+                        <label htmlFor="endsAt" className="mb-2 block text-sm font-medium text-gray-900 dark:text-zinc-100">
+                            Ends At
+                        </label>
+                        <input
+                            id="endsAt"
+                            name="endsAt"
+                            type="datetime-local"
+                            className="block w-full rounded-md border border-gray-200 bg-gray-50 py-2 px-3 text-sm text-gray-900 placeholder:text-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                            required
+                        />
+                        {state.errors?.endsAt && <p className="mt-2 text-xs text-red-500">{state.errors.endsAt}</p>}
+                    </div>
+                </div>
+
+                {/* Event branding */}
+                <div className="mb-4">
+                    <label htmlFor="logoUrl" className="mb-2 block text-sm font-medium text-gray-900 dark:text-zinc-100">
+                        Logo URL (Optional)
+                    </label>
+                    <input
+                        id="logoUrl"
+                        name="logoUrl"
+                        type="url"
+                        placeholder="https://..."
+                        className="block w-full rounded-md border border-gray-200 bg-gray-50 py-2 px-3 text-sm text-gray-900 placeholder:text-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                    />
+                    {state.errors?.logoUrl && <p className="mt-2 text-xs text-red-500">{state.errors.logoUrl}</p>}
+                </div>
+                <div className="mb-4">
+                    <label htmlFor="bannerUrl" className="mb-2 block text-sm font-medium text-gray-900 dark:text-zinc-100">
+                        Banner URL (Optional)
+                    </label>
+                    <input
+                        id="bannerUrl"
+                        name="bannerUrl"
+                        type="url"
+                        placeholder="https://..."
+                        className="block w-full rounded-md border border-gray-200 bg-gray-50 py-2 px-3 text-sm text-gray-900 placeholder:text-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                    />
+                    {state.errors?.bannerUrl && <p className="mt-2 text-xs text-red-500">{state.errors.bannerUrl}</p>}
+                </div>
+
                 {/* General Error Message */}
                 {state.message && (
                     <div className="mb-4">

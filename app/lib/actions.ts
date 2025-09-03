@@ -108,6 +108,12 @@ export type CreateEventState = {
     errors?: {
         title?: string[];
         description?: string[];
+        status?: string[];
+        locationText?: string[];
+        startsAt?: string[];
+        endsAt?: string[];
+        logoUrl?: string[];
+        bannerUrl?: string[];
     };
     message?: string | null;
 };
@@ -115,6 +121,13 @@ export type CreateEventState = {
 const CreateEventSchema = z.object({
     title: z.string().min(3, { message: "Title must be at least 3 characters." }),
     description: z.string().optional(),
+    locationText: z.string().min(3, { message: "Please provide a clear event location." }),
+    // Zod's `coerce.date` will convert the string from the form into a JavaScript Date object
+    startsAt: z.coerce.date(),
+    endsAt: z.coerce.date(),
+    // `url()` validates the input. `optional().or(z.literal(''))` allows the field to be empty.
+    logoUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+    bannerUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
 });
 
 export async function createEvent(prevState: CreateEventState, formData: FormData): Promise<CreateEventState> {
@@ -126,6 +139,11 @@ export async function createEvent(prevState: CreateEventState, formData: FormDat
     const validatedFields = CreateEventSchema.safeParse({
         title: formData.get('title'),
         description: formData.get('description'),
+        locationText: formData.get('locationText'),
+        startsAt: formData.get('startsAt'),
+        endsAt: formData.get('endsAt'),
+        logoUrl: formData.get('logoUrl'),
+        bannerUrl: formData.get('bannerUrl'),
     });
 
     if (!validatedFields.success) {
@@ -135,7 +153,12 @@ export async function createEvent(prevState: CreateEventState, formData: FormDat
         };
     }
 
-    const { title, description } = validatedFields.data;
+    const { title, description, locationText, startsAt, endsAt, logoUrl, bannerUrl } = validatedFields.data;
+
+    // Server-side validation for dates
+    if (startsAt >= endsAt) {
+        return { message: "The event's end time must be after its start time." };
+    }
 
     try {
         const userDoc = await adminDb.doc(`users/${session.uid}`).get();
@@ -154,6 +177,12 @@ export async function createEvent(prevState: CreateEventState, formData: FormDat
             ownerUid: session.uid,
             admins: [session.uid],
             createdAt: Timestamp.now(),
+            status: 'scheduled',
+            startsAt: Timestamp.fromDate(startsAt),
+            endsAt: Timestamp.fromDate(endsAt),
+            locationText: locationText,
+            logoUrl: logoUrl || null,
+            bannerUrl: bannerUrl || null,
         });
     } catch (error) {
         console.error("Event Creation Error:", error);
@@ -167,23 +196,65 @@ export async function createEvent(prevState: CreateEventState, formData: FormDat
 
 export type UpdateEventState = CreateEventState;
 
+// --- CHANGE 2: Completely updated the updateEvent function ---
+// This function now uses a new, more detailed schema and handles all the new fields,
+// including status, dates, and branding URLs.
 export async function updateEvent(prevState: UpdateEventState, formData: FormData): Promise<UpdateEventState> {
     const session = await adminAuth.getSession();
     if (!session?.uid) return { message: "Authentication error." };
 
-    const validatedFields = z.object({ id: z.string(), title: z.string().min(3), description: z.string().optional() }).safeParse(Object.fromEntries(formData));
-    if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors, message: 'Missing fields.' };
-    const { id: eventId, title, description } = validatedFields.data;
+    const UpdateEventSchema = z.object({
+        docId: z.string(), // The form will now pass the unique Firestore document ID
+        id: z.string(), // This is the short, user-facing ID
+        title: z.string().min(3, { message: "Title must be at least 3 characters." }),
+        description: z.string().optional(),
+        locationText: z.string().min(3, { message: "Location text is required." }),
+        startsAt: z.coerce.date(),
+        endsAt: z.coerce.date(),
+        status: z.enum(['scheduled', 'live', 'paused', 'ended', 'cancelled']),
+        logoUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+        bannerUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+    });
+
+    const validatedFields = UpdateEventSchema.safeParse(Object.fromEntries(formData));
+
+    if (!validatedFields.success) {
+        return { errors: validatedFields.error.flatten().fieldErrors, message: 'Missing or invalid fields.' };
+    }
+
+    const { docId, id: shortId, ...updateData } = validatedFields.data;
+
+    if (updateData.startsAt >= updateData.endsAt) {
+        return { message: "End time must be after start time." };
+    }
 
     try {
-        const eventDoc = await findEventAndVerifyAdmin(eventId, session.uid);
-        await eventDoc.ref.update({ title, description: description || '' });
+        const userDoc = await adminDb.doc(`users/${session.uid}`).get();
+        if (!userDoc.exists) throw new Error("User profile not found");
+        const organizationId = userDoc.data()!.organizationId;
+        const eventRef = adminDb.doc(`organizations/${organizationId}/events/${docId}`);
+
+        const eventDoc = await eventRef.get();
+        if (!eventDoc.exists) throw new Error("Event not found.");
+        if (!eventDoc.data()!.admins.includes(session.uid)) throw new Error("Permission denied.");
+
+        await eventRef.update({
+            title: updateData.title,
+            description: updateData.description || '',
+            locationText: updateData.locationText,
+            status: updateData.status,
+            startsAt: Timestamp.fromDate(updateData.startsAt),
+            endsAt: Timestamp.fromDate(updateData.endsAt),
+            logoUrl: updateData.logoUrl || null,
+            bannerUrl: updateData.bannerUrl || null,
+        });
     } catch (error: unknown) {
         console.error("Event Update Error:", error);
         return { message: error instanceof Error ? error.message : "Database error." };
     }
-    revalidatePath(`/dashboard/events/${eventId}`);
-    redirect(`/dashboard/events/${eventId}`);
+
+    revalidatePath(`/dashboard/events/${shortId}`);
+    redirect(`/dashboard/events/${shortId}`);
 }
 
 export type DeleteEventState = {
@@ -193,6 +264,9 @@ export type DeleteEventState = {
     };
 };
 
+// --- CHANGE 3: Enhanced the deleteEvent function ---
+// It now also deletes the logo and banner files from Firebase Storage
+// to prevent orphaned files and save space.
 export async function deleteEvent(prevState: DeleteEventState, formData: FormData): Promise<DeleteEventState> {
     const session = await adminAuth.getSession();
     if (!session?.uid) return { message: "Authentication error." };
@@ -203,21 +277,42 @@ export async function deleteEvent(prevState: DeleteEventState, formData: FormDat
     try {
         const eventDocSnapshot = await adminDb.collectionGroup('events').where('id', '==', eventId).limit(1).get();
         if (eventDocSnapshot.empty) throw new Error("Event not found.");
+
         const eventDoc = eventDocSnapshot.docs[0];
-        const eventData = eventDoc.data()!;
+        const eventData = eventDoc.data();
 
         if (eventData.ownerUid !== session.uid) {
             return { message: "Permission denied. Only the event owner can delete this event." };
         }
 
+        // Delete associated files from Firebase Storage
+        const bucket = adminStorage.bucket();
+        if (eventData.logoUrl) {
+            try {
+                const logoPath = new URL(eventData.logoUrl).pathname.split('/o/')[1].split('?')[0];
+                await bucket.file(decodeURIComponent(logoPath)).delete();
+            } catch (e) { console.error("Could not delete logo file:", e); }
+        }
+        if (eventData.bannerUrl) {
+            try {
+                const bannerPath = new URL(eventData.bannerUrl).pathname.split('/o/')[1].split('?')[0];
+                await bucket.file(decodeURIComponent(bannerPath)).delete();
+            } catch (e) { console.error("Could not delete banner file:", e); }
+        }
+
+        // Recursively delete subcollections
         const eventPath = eventDoc.ref.path;
         await deleteCollection(`${eventPath}/subscribers`, 50);
         await deleteCollection(`${eventPath}/announcements`, 50);
+
+        // Finally, delete the event document itself
         await adminDb.doc(eventPath).delete();
+
     } catch (error: unknown) {
         console.error('Event Deletion Error:', error);
         return { message: error instanceof Error ? error.message : 'An error occurred.' };
     }
+
     revalidatePath('/dashboard/events');
     redirect('/dashboard/events');
 }
@@ -457,7 +552,7 @@ export async function acceptInvite(formData: FormData) {
     batch.update(invitationRef, { status: 'accepted' });
     await batch.commit();
 
-    revalidatePath('/dashboard/events');
+    revalidatePath('/dashboard/events', 'layout');
     redirect('/dashboard/events');
 }
 
@@ -476,7 +571,7 @@ export async function rejectInvite(formData: FormData) {
 
     await invitationRef.update({ status: 'rejected' });
 
-    revalidatePath('/dashboard/invitations');
+    revalidatePath('/dashboard/invitations' , 'layout');
 }
 
 

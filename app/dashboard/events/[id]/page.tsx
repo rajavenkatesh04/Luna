@@ -11,11 +11,30 @@ import SettingsTab from '@/app/ui/dashboard/events/settings-tab';
 import clsx from 'clsx';
 import QrCodeDisplay from "@/app/ui/dashboard/events/qr-code-display";
 import { EventDetailsPageSkeleton, AnnouncementsTabSkeleton, AdminsTabSkeleton } from '@/app/ui/skeletons';
+import { Event } from '@/app/lib/definitions';
 
 type PageProps = {
     params: Promise<{ id: string }>;
     searchParams?: Promise<{ tab?: string }>;
 };
+
+function StatusBadge({ status }: { status: Event['status'] }) {
+    const statusConfig = {
+        scheduled: { text: 'Scheduled', style: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300' },
+        live: { text: 'Live', style: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 animate-pulse' },
+        paused: { text: 'Paused', style: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' },
+        ended: { text: 'Ended', style: 'bg-gray-200 text-gray-800 dark:bg-zinc-800 dark:text-zinc-400' },
+        cancelled: { text: 'Cancelled', style: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' },
+    };
+    const { text, style } = statusConfig[status] || statusConfig.scheduled;
+
+    return (
+        <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${style}`}>
+            {status === 'live' && <div className="h-2 w-2 rounded-full bg-green-500"></div>}
+            <span>{text}</span>
+        </div>
+    );
+}
 
 async function EventDetails({ params, searchParams }: PageProps) {
     const resolvedParams = await params;
@@ -36,6 +55,9 @@ async function EventDetails({ params, searchParams }: PageProps) {
     if (!event || !userProfile) notFound();
 
     const adminUsers = await fetchUsersByUid(event.admins);
+
+    const starts = new Date(event.startsAt.seconds * 1000).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    const ends = new Date(event.endsAt.seconds * 1000).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
     return (
         <main>
@@ -67,9 +89,16 @@ async function EventDetails({ params, searchParams }: PageProps) {
                             Preview
                         </Link>
                         <QrCodeDisplay eventId={event.id} />
+
                     </div>
                 </div>
                 <p className="hidden md:block mt-2 text-gray-600 dark:text-zinc-400">{event.description}</p>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 mb-4 rounded-md border border-gray-200 p-2 text-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <StatusBadge status={event.status} />
+                <span>{event.locationText}</span>
+                <span>{starts} <span className={`text-pink-500`}>to</span>  {ends}</span>
             </div>
 
             <div className="w-full">

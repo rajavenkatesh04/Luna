@@ -3,8 +3,7 @@
 import { Suspense } from 'react';
 import { fetchPendingInvites } from '@/app/lib/data';
 import { auth } from '@/app/lib/firebase-admin';
-import { acceptInvite, rejectInvite } from '@/app/lib/actions'; // Import rejectInvite
-import { notFound } from 'next/navigation';
+import { acceptInvite, rejectInvite } from '@/app/lib/actions';
 import { InvitationsSkeleton } from '@/app/ui/skeletons';
 
 async function InvitationsList() {

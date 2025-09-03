@@ -2,12 +2,15 @@ import Link from "next/link";
 import LunaLogo from "@/app/ui/luna-logo";
 import NavLinks from "@/app/ui/dashboard/nav-links";
 import { auth } from '@/app/lib/firebase-admin';
-import { fetchUserProfile } from '@/app/lib/data';
+import { fetchUserProfile, fetchPendingInvites  } from '@/app/lib/data';
 import UserProfile from './user-profile';
 
 export default async function SideNav() {
     const session = await auth.getSession();
     const userProfile = session ? await fetchUserProfile(session.uid) : null;
+
+    const pendingInvites = session ? await fetchPendingInvites(session.uid) : [];
+    const inviteCount = pendingInvites.length;
 
     const user = {
         name: session?.name || 'User',
@@ -30,7 +33,7 @@ export default async function SideNav() {
 
             {/* --- Desktop Layout --- */}
             <div className="hidden grow flex-col justify-between md:flex">
-                <NavLinks />
+                <NavLinks inviteCount={inviteCount} />
                 <div className="border-t border-gray-200 pt-2 dark:border-zinc-800">
                     <UserProfile user={user} />
                 </div>
@@ -44,7 +47,7 @@ export default async function SideNav() {
                 </div>
                 {/* Nav links take up the remaining space */}
                 <div className="flex-grow">
-                    <NavLinks />
+                    <NavLinks inviteCount={inviteCount} />
                 </div>
             </div>
         </div>

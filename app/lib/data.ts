@@ -1,9 +1,24 @@
 // app/lib/data.ts
 
 import { unstable_noStore as noStore } from 'next/cache';
-import { User, Event, Invitation  } from '@/app/lib/definitions';
+import {User, Event, Invitation, FirestoreTimestamp} from '@/app/lib/definitions';
 // Switch to using the ADMIN Firestore instance for all server-side data fetching
 import { adminDb } from './firebase-server';
+import { Timestamp } from 'firebase-admin/firestore';
+
+// Helper function to safely serialize Firestore Timestamps
+const serializeTimestamp = (timestamp: unknown) => {
+    if (timestamp && typeof timestamp === 'object' && timestamp !== null) {
+        const ts = timestamp as { _seconds?: number; _nanoseconds?: number };
+        if (ts._seconds !== undefined) {
+            return {
+                seconds: ts._seconds,
+                nanoseconds: ts._nanoseconds || 0,
+            };
+        }
+    }
+    return timestamp;
+};
 
 // Helper function to get the user's organization ID
 async function getOrganizationId(userId: string): Promise<string | null> {
@@ -49,7 +64,14 @@ export async function fetchLatestEvents(userId: string) {
             .get();
 
         const events = eventsSnapshot.docs.map(doc => {
-            return { ...doc.data(), docId: doc.id } as Event;
+            const data = doc.data();
+            return {
+                ...data,
+                docId: doc.id,
+                createdAt: serializeTimestamp(data.createdAt),
+                startsAt: serializeTimestamp(data.startsAt),
+                endsAt: serializeTimestamp(data.endsAt),
+            } as Event;
         });
 
         return events;
@@ -83,6 +105,7 @@ export async function fetchUserProfile(userId: string) {
     }
 }
 
+
 // Fetches a single event by its short ID
 export async function fetchEventById(userId: string, eventId: string) {
     noStore();
@@ -101,7 +124,15 @@ export async function fetchEventById(userId: string, eventId: string) {
 
         const organizationId = eventDoc.ref.parent.parent!.id;
 
-        return { ...eventData, docId: eventDoc.id, organizationId: organizationId };
+        // Serialize all timestamp fields before returning
+        return {
+            ...eventData,
+            docId: eventDoc.id,
+            organizationId: organizationId,
+            createdAt: serializeTimestamp(eventData.createdAt) as string | FirestoreTimestamp,
+            startsAt: serializeTimestamp(eventData.startsAt) as FirestoreTimestamp,
+            endsAt: serializeTimestamp(eventData.endsAt) as FirestoreTimestamp,
+        };
     } catch (error) {
         console.error('Database Error fetching event by ID:', error);
         return null;

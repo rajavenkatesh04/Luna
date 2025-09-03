@@ -13,6 +13,11 @@ export interface Organisation {
     subscriptionTier: 'free' | 'pro' | 'enterprise';
 }
 
+export type FirestoreTimestamp = {
+    seconds: number;
+    nanoseconds: number;
+};
+
 // This is the blueprint for a single Event document in Firestore.
 
 export type Event = {
@@ -24,6 +29,18 @@ export type Event = {
     admins: string[];
 // When we pass this from a Server to a Client Component, it must be a string.
     createdAt: string | { seconds: number; nanoseconds: number; };
+
+    // The current state of the event
+    status: 'scheduled' | 'live' | 'paused' | 'ended' | 'cancelled';
+    // The start and end times for the event
+    startsAt: FirestoreTimestamp;
+    endsAt: FirestoreTimestamp;
+    // A user-friendly text description of the location
+    locationText: string;
+    // Optional URL for the event's custom logo
+    logoUrl?: string;
+    // Optional URL for the event's hero banner image
+    bannerUrl?: string;
 };
 
 type GeoPoint = {

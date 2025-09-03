@@ -4,15 +4,13 @@ import { notFound } from 'next/navigation';
 import Breadcrumbs from '@/app/ui/dashboard/events/breadcrumbs';
 import EditEventForm from '@/app/ui/dashboard/events/edit-form';
 import { Metadata } from 'next';
+import { Event } from '@/app/lib/definitions';
 
 export const metadata: Metadata = {
     title: 'Edit Event',
 };
 
-// The 'params' prop is now a Promise, so we need to await it.
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
-
-    // Await the params Promise to get the resolved value
     const { id: eventId } = await params;
 
     const session = await auth.getSession();
@@ -20,22 +18,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         notFound();
     }
 
-    // Fetch the event data just once using the resolved eventId
     const event = await fetchEventById(session.uid, eventId);
 
     if (!event) {
         notFound();
     }
 
-    // Convert the Firestore Timestamp to a string so it can be passed to a Client Component
-    const plainEvent = {
-        ...event,
-        // Ensure createdAt is a string. If it's already a string, this won't break it.
-        // If it's a Firestore Timestamp object, it will be converted.
-        createdAt: typeof event.createdAt === 'string'
-            ? event.createdAt
-            : new Date(event.createdAt.seconds * 1000).toISOString(),
-    };
+    // The `event` object returned from `fetchEventById` is already perfectly
+    // serialized and has the correct shape for our Client Component.
+    // We can pass it directly.
 
     return (
         <main>
@@ -44,16 +35,17 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                     { label: 'Events', href: '/dashboard/events' },
                     {
                         label: event.title,
-                        href: `/dashboard/events/${event.docId}`,
+                        href: `/dashboard/events/${event.id}`,
                     },
                     {
                         label: 'Edit',
-                        href: `/dashboard/events/${event.docId}/edit`,
+                        href: `/dashboard/events/${event.id}/edit`,
                         active: true,
                     },
                 ]}
             />
-            <EditEventForm event={plainEvent} />
+            {/* Pass the event object directly to the form */}
+            <EditEventForm event={event as Event} />
         </main>
     );
 }

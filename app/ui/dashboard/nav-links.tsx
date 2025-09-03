@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import clsx from 'clsx';
 import { HomeIcon, CalendarDaysIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+import InvitationBadge from './invitation-badge';
 
 const links = [
     { name: 'Overview', href: '/dashboard', icon: HomeIcon },
@@ -11,7 +12,7 @@ const links = [
     { name: 'Invitations', href: '/dashboard/invitations', icon: EnvelopeIcon },
 ];
 
-export default function NavLinks() {
+export default function NavLinks({ inviteCount }: { inviteCount: number }) {
     const pathname = usePathname();
 
     return (
@@ -24,7 +25,7 @@ export default function NavLinks() {
                         key={link.name}
                         href={link.href}
                         className={clsx(
-                            'flex h-12 w-12 items-center justify-center rounded-full text-gray-600 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100',
+                            'relative flex h-12 w-12 items-center justify-center rounded-full text-gray-600 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100',
                             'md:h-[48px] md:w-full md:rounded-md md:justify-start md:px-3 md:gap-2',
                             {
                                 'border border-pink-200 bg-pink-100 text-pink-600 dark:border-pink-800/50 dark:bg-pink-900/20 dark:text-pink-300': pathname === link.href,
@@ -35,6 +36,10 @@ export default function NavLinks() {
                     >
                         <LinkIcon className="w-6" />
                         <p className="hidden md:block">{link.name}</p>
+
+                        {link.name === 'Invitations' && (
+                            <InvitationBadge initialCount={inviteCount} />
+                        )}
                     </Link>
                 );
             })}
