@@ -264,9 +264,7 @@ export type DeleteEventState = {
     };
 };
 
-// --- CHANGE 3: Enhanced the deleteEvent function ---
-// It now also deletes the logo and banner files from Firebase Storage
-// to prevent orphaned files and save space.
+
 export async function deleteEvent(prevState: DeleteEventState, formData: FormData): Promise<DeleteEventState> {
     const session = await adminAuth.getSession();
     if (!session?.uid) return { message: "Authentication error." };
@@ -299,6 +297,21 @@ export async function deleteEvent(prevState: DeleteEventState, formData: FormDat
                 await bucket.file(decodeURIComponent(bannerPath)).delete();
             } catch (e) { console.error("Could not delete banner file:", e); }
         }
+
+        // --- NEW LOGIC START ---
+        // Find and delete all invitations associated with this event
+        const invitationsRef = adminDb.collection('invitations');
+        const invitationsQuery = invitationsRef.where('eventId', '==', eventData.id); // Query by the short event ID
+        const invitationsSnapshot = await invitationsQuery.get();
+
+        if (!invitationsSnapshot.empty) {
+            const deleteBatch = adminDb.batch();
+            invitationsSnapshot.docs.forEach(doc => {
+                deleteBatch.delete(doc.ref);
+            });
+            await deleteBatch.commit();
+        }
+        // --- NEW LOGIC END ---
 
         // Recursively delete subcollections
         const eventPath = eventDoc.ref.path;

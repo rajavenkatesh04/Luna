@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { db } from '@/app/lib/firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
-import { Announcement, Event } from '@/app/lib/definitions';
+import { Announcement, Event, FirestoreTimestamp } from '@/app/lib/definitions';
 import toast, { Toaster } from 'react-hot-toast';
 import {
     CalendarIcon,
@@ -33,6 +33,24 @@ import NotificationRefreshAlert from "@/app/ui/NotificationRefreshAlert";
 // =================================================================================
 // REUSABLE UI COMPONENTS
 // =================================================================================
+
+function StatusBadge({ status }: { status: Event['status'] }) {
+    const statusConfig = {
+        scheduled: { text: 'Scheduled', style: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300' },
+        live: { text: 'Live', style: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 animate-pulse' },
+        paused: { text: 'Paused', style: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' },
+        ended: { text: 'Ended', style: 'bg-gray-200 text-gray-800 dark:bg-zinc-800 dark:text-zinc-400' },
+        cancelled: { text: 'Cancelled', style: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' },
+    };
+    const { text, style } = statusConfig[status] || statusConfig.scheduled;
+
+    return (
+        <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${style}`}>
+            {status === 'live' && <div className="h-2 w-2 rounded-full bg-green-500"></div>}
+            <span>{text}</span>
+        </div>
+    );
+}
 
 function SearchBar({ searchTerm, onSearchChange }: {
     searchTerm: string;
@@ -411,8 +429,9 @@ function EventHeader({ event, eventId }: { event: Event; eventId: string }) {
                 {event.title}
             </h1>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 dark:text-zinc-500 mb-4">
-                <div className="flex items-center gap-2"><MapPinIcon className="h-4 w-4" /><span>Kattankulathur, Chennai.</span></div>
-                <div className="flex items-center gap-2 text-green-600 dark:text-green-400"><div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div><span className="font-medium">Live Event</span></div>
+                <div className="flex items-center gap-2"><MapPinIcon className="h-4 w-4" /><span>{event.locationText}</span></div>
+                <StatusBadge status={event.status}  />
+
             </div>
 
             {event.description && (
