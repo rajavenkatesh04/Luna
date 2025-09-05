@@ -212,3 +212,19 @@ export async function fetchPendingInvites(userId: string) {
         return [];
     }
 }
+
+
+// Fetches all users in the system for the master dashboard
+export async function fetchAllUsers(): Promise<User[]> {
+    noStore();
+    try {
+        const usersSnapshot = await adminDb.collection('users').get();
+        if (usersSnapshot.empty) {
+            return [];
+        }
+        return usersSnapshot.docs.map(doc => doc.data() as User);
+    } catch (error) {
+        console.error('Database Error fetching all users:', error);
+        return [];
+    }
+}

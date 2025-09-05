@@ -25,15 +25,18 @@ export async function GET(request: NextRequest) {
 
         if (!userDoc.exists) {
             // User is authenticated but hasn't completed their profile
-            return NextResponse.json({ isAuthenticated: true, isProfileComplete: false });
+            return NextResponse.json({ isAuthenticated: true, isProfileComplete: false, userRole: null });
         }
+        const userData = userDoc.data();
+        const userRole = userData?.role || 'member';
+
 
         // User is fully authenticated and has a profile
-        return NextResponse.json({ isAuthenticated: true, isProfileComplete: true });
+        return NextResponse.json({ isAuthenticated: true, isProfileComplete: true, userRole: userRole });
 
     } catch (error) {
         console.error("Check-status error:", error);
         // Session cookie is invalid or expired
-        return NextResponse.json({ isAuthenticated: false, isProfileComplete: false });
+        return NextResponse.json({ isAuthenticated: false, isProfileComplete: false, userRole: null });
     }
 }

@@ -33,7 +33,7 @@ export default async function SideNav() {
 
             {/* --- Desktop Layout --- */}
             <div className="hidden grow flex-col justify-between md:flex">
-                <NavLinks inviteCount={inviteCount} />
+                <NavLinks inviteCount={inviteCount} userRole={user.role}/>
                 <div className="border-t border-gray-200 pt-2 dark:border-zinc-800">
                     <UserProfile user={user} />
                 </div>
@@ -47,7 +47,7 @@ export default async function SideNav() {
                 </div>
                 {/* Nav links take up the remaining space */}
                 <div className="flex-grow">
-                    <NavLinks inviteCount={inviteCount} />
+                    <NavLinks inviteCount={inviteCount} userRole={user.role} />
                 </div>
             </div>
         </div>

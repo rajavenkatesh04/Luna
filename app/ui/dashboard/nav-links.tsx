@@ -3,21 +3,27 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import clsx from 'clsx';
-import { HomeIcon, CalendarDaysIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, CalendarDaysIcon, EnvelopeIcon, BoltIcon } from '@heroicons/react/24/outline';
 import InvitationBadge from './invitation-badge';
 
 const links = [
     { name: 'Overview', href: '/dashboard', icon: HomeIcon },
     { name: 'Events', href: '/dashboard/events', icon: CalendarDaysIcon },
     { name: 'Invitations', href: '/dashboard/invitations', icon: EnvelopeIcon },
+    { name: 'Master', href: '/dashboard/master', icon: BoltIcon },
 ];
 
-export default function NavLinks({ inviteCount }: { inviteCount: number }) {
+export default function NavLinks({ inviteCount, userRole }: { inviteCount: number, userRole? : string }) {
     const pathname = usePathname();
 
     return (
         <div className="flex flex-row items-center justify-end gap-2 md:flex-col md:justify-start md:space-y-2 md:gap-0">
             {links.map((link) => {
+
+                if (link.name === 'Masters' && userRole !== 'god') {
+                    return null;
+                }
+
                 const LinkIcon = link.icon;
 
                 return (

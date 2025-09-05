@@ -9,6 +9,7 @@ export async function middleware(request: NextRequest) {
     const isDashboardRoute = url.pathname.startsWith('/dashboard');
     const isCompleteProfileRoute = url.pathname === '/complete-profile';
     const isLoginRoute = url.pathname === '/login';
+    const isMasterRoute = url.pathname.startsWith('/dashboard/master');
 
     // --- If a session cookie exists, verify it and check profile status ---
     if (sessionCookie) {
@@ -22,7 +23,7 @@ export async function middleware(request: NextRequest) {
             }
         });
 
-        const { isAuthenticated, isProfileComplete } = await response.json();
+        const { isAuthenticated, isProfileComplete, userRole } = await response.json();
 
         // --- Routing Logic Based on Auth and Profile Status ---
 
@@ -47,6 +48,11 @@ export async function middleware(request: NextRequest) {
             if (isLoginRoute || isCompleteProfileRoute) {
                 return NextResponse.redirect(new URL('/dashboard', request.url));
             }
+        }
+
+        if (isMasterRoute && userRole !== 'god') {
+            // Redirect to dashboard with an error message
+            return NextResponse.redirect(new URL('/dashboard?error=insufficient_permissions', request.url));
         }
     }
     // --- If no session cookie exists ---

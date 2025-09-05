@@ -11,19 +11,21 @@ async function getSession() {
     try {
         initFirebaseAdminApp();
 
-        // We must first 'await' the cookies() function to get the cookie store.
         const cookieStore = await cookies();
         const sessionCookie = cookieStore.get('session')?.value;
 
         if (!sessionCookie) return null;
 
-        // Verify the cookie is valid and not expired.
         const decodedClaims = await getAuth().verifySessionCookie(sessionCookie, true);
         return decodedClaims;
     } catch (error) {
-        // Session cookie is invalid, expired, or an error occurred.
         return null;
     }
 }
 
+// This export remains for any other part of your app that uses it.
 export const  auth = { getSession };
+
+// NEW: Export the full Firebase Admin Auth service for your server action.
+initFirebaseAdminApp(); // Ensure the app is initialized before exporting.
+export const masterAuth = getAuth();
