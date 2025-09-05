@@ -649,25 +649,25 @@ function CompactAnnouncementCard({
                             </div>
                         </div>
                     )}
-                <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${announcement.location.center.lat},${announcement.location.center.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-block text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400"
+                    <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${announcement.location.center.lat},${announcement.location.center.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-block text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400"
                     >
-                    Get Directions
-                </a>
+                        Get Directions
+                    </a>
                 </div>
-                )}
+            )}
 
-<footer className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200/80 pt-4 mt-4 text-sm text-gray-500 dark:border-zinc-800/50 dark:text-zinc-400">
-    <div className="flex items-center gap-2">
-        <CalendarIcon className="h-5 w-5" />
-        <span>{formatRelativeDate(announcement.createdAt)}</span>
-    </div>
-</footer>
-</article>
-);
+            <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200/80 pt-4 mt-4 text-sm text-gray-500 dark:border-zinc-800/50 dark:text-zinc-400">
+                <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-5 w-5" />
+                    <span>{formatRelativeDate(announcement.createdAt)}</span>
+                </div>
+            </footer>
+        </article>
+    );
 }
 
 async function getInitialEventData(eventCode: string) {
