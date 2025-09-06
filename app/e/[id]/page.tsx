@@ -1,3 +1,5 @@
+// [id]/page.tsx
+
 'use client';
 
 import { useEffect, useState, useRef, use } from 'react';
@@ -29,9 +31,13 @@ import { AnnouncementsFeedSkeleton } from '@/app/ui/skeletons';
 import { formatRelativeDate } from '@/app/lib/utils';
 import { APIProvider, Map, AdvancedMarker, useMap, InfoWindow } from '@vis.gl/react-google-maps';
 import NotificationRefreshAlert from "@/app/ui/NotificationRefreshAlert";
+// 👇 1. IMPORT THE NEW STATUS SCREEN COMPONENTS
+import { ScheduledScreen, PausedScreen, EndedScreen, CancelledScreen } from '@/app/e/ui/StatusScreens';
+
 
 // =================================================================================
 // REUSABLE UI COMPONENTS
+// (All reusable components like StatusBadge, SearchBar, NavbarForSRM, etc. remain unchanged)
 // =================================================================================
 
 function StatusBadge({ status }: { status: Event['status'] }) {
@@ -670,6 +676,7 @@ function CompactAnnouncementCard({
     );
 }
 
+
 async function getInitialEventData(eventCode: string) {
     try {
         const baseUrl = typeof window !== 'undefined' ? '' : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
@@ -681,6 +688,52 @@ async function getInitialEventData(eventCode: string) {
         return null;
     }
 }
+
+
+// In [id]/page.tsx, right above the `export default function PublicEventPage...` line
+
+/**
+ * A robust function to normalize a Firestore timestamp from any format
+ * (Admin SDK object, ISO string, or client SDK object) into the
+ * format our client components expect: { seconds: number, nanoseconds: number }.
+ */
+/**
+ * A robust function to normalize a Firestore timestamp from any format
+ * (Admin SDK object, ISO string, or client SDK object) into the
+ * format our client components expect: { seconds: number, nanoseconds: number }.
+ */
+/**
+ * A robust, fully type-safe function to normalize a Firestore timestamp from any format
+ * into the format our client components expect: { seconds: number, nanoseconds: number }.
+ */
+function normalizeTimestamp(timestamp: unknown): { seconds: number; nanoseconds: number } {
+    // Case 1: It's already in the correct client-side format.
+    if (
+        timestamp instanceof Object && 'seconds' in timestamp && typeof timestamp.seconds === 'number'
+    ) {
+        return timestamp as { seconds: number; nanoseconds: number };
+    }
+
+    // Case 2: It's a server-side Admin SDK timestamp ({ _seconds, _nanoseconds }).
+    if (
+        timestamp instanceof Object && '_seconds' in timestamp && typeof timestamp._seconds === 'number'
+    ) {
+        // TypeScript now knows the shape of the object, so we can access its properties.
+        const serverTimestamp = timestamp as { _seconds: number; _nanoseconds?: number };
+        return { seconds: serverTimestamp._seconds, nanoseconds: serverTimestamp._nanoseconds || 0 };
+    }
+
+    // Case 3: It's a string (e.g., from JSON serialization).
+    if (typeof timestamp === 'string') {
+        const date = new Date(timestamp);
+        // getTime() returns milliseconds, so we convert to seconds.
+        return { seconds: Math.floor(date.getTime() / 1000), nanoseconds: 0 };
+    }
+
+    // Fallback for unexpected formats.
+    return { seconds: 0, nanoseconds: 0 };
+}
+
 
 // =================================================================================
 // MAIN PAGE COMPONENT
@@ -701,6 +754,7 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
     const liveUpdatesRef = useRef<HTMLDivElement>(null);
     const initialScrollDone = useRef(false);
 
+
     useEffect(() => {
         if (!eventId) return;
 
@@ -708,22 +762,45 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
 
         getInitialEventData(eventId).then(data => {
             if (data && data.eventData && data.eventPath) {
-                setEvent(data.eventData);
+
+                // =================================================================
+                // 👇 USING THE NEW, ROBUST FIX
+                // =================================================================
+                const rawEvent = data.eventData;
+
+                const correctedEvent = {
+                    ...rawEvent,
+                    // Use our universal parser for both timestamps
+                    startsAt: normalizeTimestamp(rawEvent.startsAt),
+                    endsAt: normalizeTimestamp(rawEvent.endsAt),
+                };
+
+                setEvent(correctedEvent);
+                // =================================================================
+                // END OF FIX
+                // =================================================================
+
                 setIsLoading(false);
 
                 const announcementsQuery = query(collection(db, `${data.eventPath}/announcements`), orderBy('createdAt', 'desc'));
 
                 unsubscribe = onSnapshot(announcementsQuery, (querySnapshot) => {
-                    const announcementsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
+                    const announcementsData = querySnapshot.docs.map(doc => {
+                        const data = doc.data();
+                        // Also normalize timestamps within announcements if they exist
+                        return {
+                            id: doc.id,
+                            ...data,
+                            createdAt: normalizeTimestamp(data.createdAt)
+                        } as Announcement;
+                    });
 
-                    // Track the most recent announcement time for "new" indicators
                     if (announcementsData.length > 0) {
                         const mostRecentTime = Math.max(...announcementsData.map(a => a.createdAt.seconds));
                         if (mostRecentTime > latestAnnouncementTime) {
                             setLatestAnnouncementTime(mostRecentTime);
                         }
                     }
-
                     setAllAnnouncements(announcementsData);
                     setIsFeedLoading(false);
                 }, (err) => {
@@ -804,70 +881,70 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
             <NavbarForSRM searchTerm={searchTerm} onSearchChange={setSearchTerm} />
 
             <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-                {/* Only show event header when not actively searching */}
+                {/* Event header is shown for all statuses, but hidden on search */}
                 {!isSearchActive && event && <EventHeader event={event} eventId={eventId} />}
 
                 <main>
+                    {/* 👇 2. MODIFIED MAIN CONTENT AREA */}
                     {isFeedLoading ? (
                         <AnnouncementsFeedSkeleton />
                     ) : (
-                        <>
-                            {/* Only show pinned carousel when not searching */}
-                            {!isSearchActive && <PinnedCarousel announcements={pinnedAnnouncements} />}
+                        (() => {
+                            if (!event) return null; // Should not happen if error handling is correct
 
-                            {/* notification refresh alert here */}
-                            {!isSearchActive && <NotificationRefreshAlert eventId={eventId} />}
-
-                            <div ref={liveUpdatesRef} className="scroll-mt-24">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 flex items-center gap-2">
-                                        <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-                                        {isSearchActive ? 'Search Results' : 'Live Updates'}
-                                    </h3>
-
-                                    {!isSearchActive && liveAnnouncements.length > 0 && (
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={handleExpandAll}
-                                                className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 px-2 py-1 rounded border border-indigo-200 hover:border-indigo-300 dark:border-indigo-800 dark:hover:border-indigo-700"
-                                            >
-                                                Expand All
-                                            </button>
-                                            <button
-                                                onClick={handleCollapseAll}
-                                                className="text-xs font-medium text-gray-600 hover:text-gray-500 dark:text-gray-400 dark:hover:text-gray-300 px-2 py-1 rounded border border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
-                                            >
-                                                Collapse All
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {liveAnnouncements.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {liveAnnouncements.map((ann, index) => (
-                                            <CompactAnnouncementCard
-                                                key={ann.id}
-                                                announcement={ann}
-                                                isRecent={isAnnouncementRecent(ann)}
-                                                isExpanded={expandedCards.has(ann.id)}
-                                                onToggleExpanded={() => handleToggleExpanded(ann.id)}
-                                                shouldAutoExpand={index === 0 && isAnnouncementRecent(ann)} // Auto-expand most recent
-                                            />
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="rounded-lg border-2 border-dashed border-gray-300/80 bg-white/50 py-20 text-center dark:border-zinc-800/50 dark:bg-zinc-900/50">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">
-                                            {searchTerm ? 'No Matching Updates' : 'No Live Updates Yet'}
-                                        </h3>
-                                        <p className="mt-1 text-gray-500 dark:text-zinc-400">
-                                            {searchTerm ? 'Try a different search term.' : 'Stay tuned for real-time announcements!'}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </>
+                            switch (event.status) {
+                                case 'scheduled':
+                                    return <ScheduledScreen event={event} />;
+                                case 'paused':
+                                    return <PausedScreen />;
+                                case 'ended':
+                                    return <EndedScreen announcements={allAnnouncements} />;
+                                case 'cancelled':
+                                    return <CancelledScreen />;
+                                case 'live':
+                                default:
+                                    // This is the original content for a live event
+                                    return (
+                                        <>
+                                            {!isSearchActive && <PinnedCarousel announcements={pinnedAnnouncements} />}
+                                            {!isSearchActive && <NotificationRefreshAlert eventId={eventId} />}
+                                            <div ref={liveUpdatesRef} className="scroll-mt-24">
+                                                <div className="flex items-center justify-between mb-6">
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 flex items-center gap-2">
+                                                        <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                                                        {isSearchActive ? 'Search Results' : 'Live Updates'}
+                                                    </h3>
+                                                    {!isSearchActive && liveAnnouncements.length > 0 && (
+                                                        <div className="flex items-center gap-2">
+                                                            <button onClick={handleExpandAll} className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 px-2 py-1 rounded border border-indigo-200 hover:border-indigo-300 dark:border-indigo-800 dark:hover:border-indigo-700">Expand All</button>
+                                                            <button onClick={handleCollapseAll} className="text-xs font-medium text-gray-600 hover:text-gray-500 dark:text-gray-400 dark:hover:text-gray-300 px-2 py-1 rounded border border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600">Collapse All</button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {liveAnnouncements.length > 0 ? (
+                                                    <div className="space-y-4">
+                                                        {liveAnnouncements.map((ann, index) => (
+                                                            <CompactAnnouncementCard
+                                                                key={ann.id}
+                                                                announcement={ann}
+                                                                isRecent={isAnnouncementRecent(ann)}
+                                                                isExpanded={expandedCards.has(ann.id)}
+                                                                onToggleExpanded={() => handleToggleExpanded(ann.id)}
+                                                                shouldAutoExpand={index === 0 && isAnnouncementRecent(ann)}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="rounded-lg border-2 border-dashed border-gray-300/80 bg-white/50 py-20 text-center dark:border-zinc-800/50 dark:bg-zinc-900/50">
+                                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">{searchTerm ? 'No Matching Updates' : 'No Live Updates Yet'}</h3>
+                                                        <p className="mt-1 text-gray-500 dark:text-zinc-400">{searchTerm ? 'Try a different search term.' : 'Stay tuned for real-time announcements!'}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    );
+                            }
+                        })()
                     )}
                 </main>
             </div>
@@ -883,18 +960,17 @@ export default function PublicEventPage({ params }: { params: Promise<{ id: stri
                 </div>
             </footer>
 
-            {/* Add custom CSS for the gradient animation */}
             <style jsx>{`
-               @keyframes gradient-slide {
-                   0% { background-position: 0% 0%; }
-                   100% { background-position: 100% 100%; }
-               }
-               .border-gradient-animated {
-                   border: 2px solid;
-                   border-image: linear-gradient(45deg, #3b82f6, #9333ea, #3b82f6) 1;
-                   animation: gradient-slide 3s linear infinite;
-               }
-           `}</style>
+                @keyframes gradient-slide {
+                    0% { background-position: 0% 0%; }
+                    100% { background-position: 100% 100%; }
+                }
+                .border-gradient-animated {
+                    border: 2px solid;
+                    border-image: linear-gradient(45deg, #3b82f6, #9333ea, #3b82f6) 1;
+                    animation: gradient-slide 3s linear infinite;
+                }
+            `}</style>
         </div>
     );
 }
