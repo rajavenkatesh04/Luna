@@ -71,7 +71,7 @@ export default function PrivacyPolicyPage() {
                         <section>
                             <h2 className="mb-3 text-xl font-semibold text-gray-800 dark:text-zinc-200">6. Contact Us</h2>
                             <p>
-                                If you have questions or comments about this Privacy Policy, please contact us at: <a href="mailto:[Your Contact Email]" className="text-blue-500 hover:underline">[Your Contact Email]</a>.
+                                If you have questions or comments about this Privacy Policy, please contact us at: <a href="mailto:grv.9604@gmail.com" className="text-blue-500 hover:underline">here</a>.
                             </p>
                         </section>
                     </div>
